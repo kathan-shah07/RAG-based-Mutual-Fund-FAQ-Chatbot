@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mutual Fund FAQ Assistant</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/styles.css?v=3">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Mutual Fund FAQ Assistant</h1>
+            <p class="welcome-message">Welcome! I'm here to help you with factual information about mutual funds.</p>
+            <p class="disclaimer">Facts-only. No investment advice.</p>
+            <div id="scraper-status" class="scraper-status" style="display: none;">
+                <div class="status-indicator">
+                    <span class="status-spinner"></span>
+                    <span class="status-message"></span>
+                </div>
+                <div class="status-progress" style="display: none;">
+                    <div class="progress-bar">
+                        <div class="progress-fill"></div>
+                    </div>
+                    <div class="progress-text"></div>
+                </div>
+            </div>
+        </header>
+
+        <div class="example-questions">
+            <h2>Example Questions:</h2>
+            <div class="example-question" onclick="askQuestion('What is the expense ratio of Nippon India Large Cap Fund?')">
+                What is the expense ratio of Nippon India Large Cap Fund?
+            </div>
+            <div class="example-question" onclick="askQuestion('What is the lock-in period for ELSS funds?')">
+                What is the lock-in period for ELSS funds?
+            </div>
+            <div class="example-question" onclick="askQuestion('What is the minimum SIP amount?')">
+                What is the minimum SIP amount?
+            </div>
+        </div>
+
+        <div class="chat-container">
+            <div id="chat-messages" class="chat-messages"></div>
+        </div>
+
+        <div class="input-container">
+            <input 
+                type="text" 
+                id="question-input" 
+                placeholder="💬 Ask a question about mutual funds..."
+                onkeypress="handleKeyPress(event)"
+            />
+            <button id="submit-btn" onclick="submitQuestion()">
+                <span>Send</span>
+            </button>
+        </div>
+    </div>
+
+    <script src="/static/script.js?v=3"></script>
+</body>
+</html>
+

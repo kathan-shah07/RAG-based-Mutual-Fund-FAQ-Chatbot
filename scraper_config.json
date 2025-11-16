@@ -1,0 +1,33 @@
+{
+  "scraper_settings": {
+    "output_dir": "./data/mutual_funds",
+    "download_dir": "./data/downloaded_html",
+    "use_interactive": true,
+    "download_first": true,
+    "retry_failed": true,
+    "max_retries": 3
+  },
+  "urls": [
+    {
+      "url": "https://groww.in/mutual-funds/nippon-india-elss-tax-saver-fund-direct-growth"
+    },
+    {
+      "url": "https://groww.in/mutual-funds/nippon-india-flexi-cap-fund-direct-growth"
+    },
+    {
+      "url": "https://groww.in/mutual-funds/nippon-india-growth-mid-cap-fund-direct-growth"
+    },
+    {
+      "url": "https://groww.in/mutual-funds/nippon-india-large-cap-fund-direct-growth"
+    }
+  ],
+  "schedule": {
+    "enabled": true,
+    "interval_type": "hourly",
+    "interval_hours": 1,
+    "interval_days": null,
+    "run_at_times": [],
+    "auto_ingest_after_scrape": true
+  }
+}
+
