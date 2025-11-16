@@ -1,2 +1,1 @@
-"""API module for FastAPI endpoints."""
-
+# API package
