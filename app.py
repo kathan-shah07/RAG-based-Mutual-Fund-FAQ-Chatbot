@@ -39,6 +39,41 @@ st.markdown("""
     footer {visibility: hidden;}
     .stDeployButton {display: none;}
     
+    /* Custom footer styling */
+    .custom-footer {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 1rem 1.5rem;
+        text-align: center;
+        font-size: 0.85rem;
+        z-index: 1000;
+        box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    
+    .custom-footer p {
+        margin: 0;
+        padding: 0;
+        color: white;
+        font-weight: 500;
+    }
+    
+    .custom-footer a {
+        color: white;
+        text-decoration: none;
+        font-weight: 600;
+        transition: opacity 0.3s ease;
+    }
+    
+    .custom-footer a:hover {
+        opacity: 0.8;
+        text-decoration: underline;
+    }
+    
     /* Keep header visible for sidebar toggle */
     header[data-testid="stHeader"] {
         visibility: visible !important;
@@ -81,7 +116,7 @@ st.markdown("""
     /* Main container styling - modern and spacious */
     .main .block-container {
         padding-top: 2rem;
-        padding-bottom: 2rem;
+        padding-bottom: 4rem;
         max-width: 900px;
         padding-left: 1.5rem;
         padding-right: 1.5rem;
@@ -430,18 +465,25 @@ st.markdown("""
     .stChatInput button[aria-label*="send"],
     .stChatInputContainer button,
     .stChatInputContainer button[type="submit"],
-    .stChatInputContainer button[kind="primary"] {
+    .stChatInputContainer button[kind="primary"],
+    [data-testid="stChatInput"] button,
+    [data-testid="stChatInput"] button[type="submit"],
+    [data-testid="stChatInput"] button[kind="primary"] {
         display: flex !important;
         visibility: visible !important;
         opacity: 1 !important;
     }
     
-    /* Style Send button specifically - modern gradient button with arrow */
+    /* Style Send button specifically - modern gradient button with arrow - MORE AGGRESSIVE */
     .stChatInput > div > div > div > button:last-child,
+    .stChatInput > div > div > button:last-child,
     .stChatInput button[kind="primary"],
     .stChatInput button[aria-label*="Send"],
     .stChatInput button[aria-label*="send"],
-    .stChatInput button[type="submit"]:not([aria-label*="microphone"]):not([aria-label*="Mic"]) {
+    .stChatInput button[type="submit"]:not([aria-label*="microphone"]):not([aria-label*="Mic"]),
+    [data-testid="stChatInput"] button:not([aria-label*="microphone"]):not([aria-label*="Mic"]),
+    [data-testid="stChatInput"] button[type="submit"]:not([aria-label*="microphone"]):not([aria-label*="Mic"]),
+    .stChatInputContainer button:not([aria-label*="microphone"]):not([aria-label*="Mic"]) {
         display: flex !important;
         visibility: visible !important;
         opacity: 1 !important;
@@ -458,9 +500,9 @@ st.markdown("""
         cursor: pointer !important;
         transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
         position: relative !important;
-        z-index: 10 !important;
+        z-index: 999 !important;
         box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4) !important;
-        font-size: 18px !important;
+        font-size: 20px !important;
         font-weight: bold !important;
     }
     
@@ -1383,84 +1425,128 @@ st.markdown("""
 <script>
     (function() {
         function ensureSendButtonVisible() {
-            // Find chat input containers
-            const chatInputs = document.querySelectorAll('[data-testid="stChatInput"], .stChatInput, .stChatInputContainer');
+            // Find ALL possible chat input containers
+            const selectors = [
+                '[data-testid="stChatInput"]',
+                '.stChatInput',
+                '.stChatInputContainer',
+                'div[class*="stChatInput"]',
+                'div[data-baseweb="input"]'
+            ];
+            
+            let chatInputs = [];
+            selectors.forEach(selector => {
+                const elements = document.querySelectorAll(selector);
+                elements.forEach(el => chatInputs.push(el));
+            });
+            
+            // Also search in body for any buttons near input fields
+            const allButtons = document.querySelectorAll('button');
             
             chatInputs.forEach(container => {
-                // Find all buttons in the container
+                // Find all buttons in the container and parent containers
                 const buttons = container.querySelectorAll('button');
-                
-                buttons.forEach(button => {
-                    const ariaLabel = (button.getAttribute('aria-label') || '').toLowerCase();
-                    const hasMicIcon = button.querySelector('svg[viewBox*="24"]');
-                    const isMic = ariaLabel.includes('microphone') || 
-                                 ariaLabel.includes('mic') ||
-                                 hasMicIcon;
-                    
-                    if (isMic) {
-                        // Hide mic button
-                        button.style.display = 'none';
-                        button.style.visibility = 'hidden';
-                    } else {
-                        // This is the Send button - make it visible and styled with arrow icon
-                        button.style.setProperty('display', 'flex', 'important');
-                        button.style.setProperty('visibility', 'visible', 'important');
-                        button.style.setProperty('opacity', '1', 'important');
-                        button.style.setProperty('background', 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', 'important');
-                        button.style.setProperty('color', 'white', 'important');
-                        button.style.setProperty('border', 'none', 'important');
-                        button.style.setProperty('border-radius', '50%', 'important');
-                        button.style.setProperty('width', '42px', 'important');
-                        button.style.setProperty('height', '42px', 'important');
-                        button.style.setProperty('min-width', '42px', 'important');
-                        button.style.setProperty('padding', '0', 'important');
-                        button.style.setProperty('align-items', 'center', 'important');
-                        button.style.setProperty('justify-content', 'center', 'important');
-                        button.style.setProperty('cursor', 'pointer', 'important');
-                        button.style.setProperty('z-index', '10', 'important');
-                        button.style.setProperty('font-size', '18px', 'important');
-                        button.style.setProperty('font-weight', 'bold', 'important');
-                        button.style.setProperty('box-shadow', '0 4px 12px rgba(102, 126, 234, 0.4)', 'important');
-                        
-                        // Add arrow icon if not already present
-                        if (!button.querySelector('.send-button-arrow') && !button.textContent.includes('→') && !button.textContent.includes('➜')) {
-                            const arrow = document.createElement('span');
-                            arrow.className = 'send-button-arrow';
-                            arrow.textContent = '→';
-                            arrow.style.display = 'inline-block';
-                            arrow.style.margin = '0';
-                            arrow.style.padding = '0';
-                            arrow.style.lineHeight = '1';
-                            // Clear any existing content and add arrow
-                            button.innerHTML = '';
-                            button.appendChild(arrow);
-                        } else if (button.textContent && !button.textContent.includes('→') && !button.textContent.includes('➜')) {
-                            // If button has text but no arrow, add arrow
-                            button.innerHTML = '→';
-                        }
-                        
-                        // Add hover effect
-                        button.addEventListener('mouseenter', function() {
-                            this.style.setProperty('background', 'linear-gradient(135deg, #5568d3 0%, #6a3f8f 100%)', 'important');
-                            this.style.setProperty('transform', 'scale(1.05)', 'important');
-                            this.style.setProperty('box-shadow', '0 6px 20px rgba(102, 126, 234, 0.5)', 'important');
-                        });
-                        button.addEventListener('mouseleave', function() {
-                            this.style.setProperty('background', 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', 'important');
-                            this.style.setProperty('transform', 'scale(1)', 'important');
-                            this.style.setProperty('box-shadow', '0 4px 12px rgba(102, 126, 234, 0.4)', 'important');
-                        });
-                        
-                        // Add active effect
-                        button.addEventListener('mousedown', function() {
-                            this.style.setProperty('transform', 'scale(0.95)', 'important');
-                        });
-                        button.addEventListener('mouseup', function() {
-                            this.style.setProperty('transform', 'scale(1.05)', 'important');
-                        });
-                    }
-                });
+                buttons.forEach(button => processButton(button));
             });
+            
+            // Process all buttons on page that might be send buttons
+            allButtons.forEach(button => {
+                const ariaLabel = (button.getAttribute('aria-label') || '').toLowerCase();
+                const parent = button.closest('[data-testid="stChatInput"], .stChatInput, .stChatInputContainer');
+                if (parent || ariaLabel.includes('send') || button.type === 'submit') {
+                    processButton(button);
+                }
+            });
+        }
+        
+        function processButton(button) {
+            if (!button) return;
+            
+            const ariaLabel = (button.getAttribute('aria-label') || '').toLowerCase();
+            const hasMicIcon = button.querySelector('svg[viewBox*="24"], svg[viewBox*="20"]');
+            const isMic = ariaLabel.includes('microphone') || 
+                         ariaLabel.includes('mic') ||
+                         (hasMicIcon && !ariaLabel.includes('send'));
+            
+            if (isMic) {
+                // Hide mic button
+                button.style.display = 'none';
+                button.style.visibility = 'hidden';
+                button.style.opacity = '0';
+            } else {
+                // This is the Send button - make it visible and styled with arrow icon
+                button.style.setProperty('display', 'flex', 'important');
+                button.style.setProperty('visibility', 'visible', 'important');
+                button.style.setProperty('opacity', '1', 'important');
+                button.style.setProperty('background', 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', 'important');
+                button.style.setProperty('color', 'white', 'important');
+                button.style.setProperty('border', 'none', 'important');
+                button.style.setProperty('border-radius', '50%', 'important');
+                button.style.setProperty('width', '42px', 'important');
+                button.style.setProperty('height', '42px', 'important');
+                button.style.setProperty('min-width', '42px', 'important');
+                button.style.setProperty('padding', '0', 'important');
+                button.style.setProperty('align-items', 'center', 'important');
+                button.style.setProperty('justify-content', 'center', 'important');
+                button.style.setProperty('cursor', 'pointer', 'important');
+                button.style.setProperty('z-index', '999', 'important');
+                button.style.setProperty('font-size', '20px', 'important');
+                button.style.setProperty('font-weight', 'bold', 'important');
+                button.style.setProperty('box-shadow', '0 4px 12px rgba(102, 126, 234, 0.4)', 'important');
+                button.style.setProperty('position', 'relative', 'important');
+                
+                // Add arrow icon if not already present
+                const hasArrow = button.textContent.includes('→') || 
+                                button.textContent.includes('➜') || 
+                                button.querySelector('.send-button-arrow');
+                
+                if (!hasArrow) {
+                    // Remove any existing SVG icons
+                    const svgs = button.querySelectorAll('svg');
+                    svgs.forEach(svg => {
+                        if (!svg.closest('.send-button-arrow')) {
+                            svg.remove();
+                        }
+                    });
+                    
+                    const arrow = document.createElement('span');
+                    arrow.className = 'send-button-arrow';
+                    arrow.textContent = '→';
+                    arrow.style.display = 'inline-block';
+                    arrow.style.margin = '0';
+                    arrow.style.padding = '0';
+                    arrow.style.lineHeight = '1';
+                    arrow.style.fontSize = '20px';
+                    arrow.style.fontWeight = 'bold';
+                    // Clear any existing content and add arrow
+                    button.innerHTML = '';
+                    button.appendChild(arrow);
+                }
+                
+                // Add hover effect (check if already added)
+                if (!button.hasAttribute('data-send-button-styled')) {
+                    button.setAttribute('data-send-button-styled', 'true');
+                    
+                    button.addEventListener('mouseenter', function() {
+                        this.style.setProperty('background', 'linear-gradient(135deg, #5568d3 0%, #6a3f8f 100%)', 'important');
+                        this.style.setProperty('transform', 'scale(1.05)', 'important');
+                        this.style.setProperty('box-shadow', '0 6px 20px rgba(102, 126, 234, 0.5)', 'important');
+                    });
+                    button.addEventListener('mouseleave', function() {
+                        this.style.setProperty('background', 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', 'important');
+                        this.style.setProperty('transform', 'scale(1)', 'important');
+                        this.style.setProperty('box-shadow', '0 4px 12px rgba(102, 126, 234, 0.4)', 'important');
+                    });
+                    
+                    // Add active effect
+                    button.addEventListener('mousedown', function() {
+                        this.style.setProperty('transform', 'scale(0.95)', 'important');
+                    });
+                    button.addEventListener('mouseup', function() {
+                        this.style.setProperty('transform', 'scale(1)', 'important');
+                    });
+                }
+            }
         }
         
         // Run immediately
@@ -1471,13 +1557,18 @@ st.markdown("""
             document.addEventListener('DOMContentLoaded', ensureSendButtonVisible);
         }
         
-        // Run after delays to catch Streamlit's dynamic rendering
+        // Run after delays to catch Streamlit's dynamic rendering - MORE FREQUENTLY
+        setTimeout(ensureSendButtonVisible, 50);
         setTimeout(ensureSendButtonVisible, 100);
+        setTimeout(ensureSendButtonVisible, 200);
         setTimeout(ensureSendButtonVisible, 300);
         setTimeout(ensureSendButtonVisible, 500);
+        setTimeout(ensureSendButtonVisible, 800);
         setTimeout(ensureSendButtonVisible, 1000);
+        setTimeout(ensureSendButtonVisible, 1500);
+        setTimeout(ensureSendButtonVisible, 2000);
         
-        // Watch for Streamlit's frame updates
+        // Watch for Streamlit's frame updates - MORE AGGRESSIVE
         const targetNode = document.body;
         const observer = new MutationObserver(function(mutations) {
             let shouldCheck = false;
@@ -1485,11 +1576,19 @@ st.markdown("""
                 if (mutation.addedNodes.length > 0) {
                     mutation.addedNodes.forEach(function(node) {
                         if (node.nodeType === 1) {
+                            // Check for chat input or buttons
                             if (node.classList && (
                                 node.classList.contains('stChatInput') ||
+                                node.classList.contains('stChatInputContainer') ||
+                                node.tagName === 'BUTTON' ||
                                 node.querySelector('.stChatInput') ||
-                                node.querySelector('[data-testid="stChatInput"]')
+                                node.querySelector('[data-testid="stChatInput"]') ||
+                                node.querySelector('button')
                             )) {
+                                shouldCheck = true;
+                            }
+                            // Also check if it's a button
+                            if (node.tagName === 'BUTTON') {
                                 shouldCheck = true;
                             }
                         }
@@ -1497,14 +1596,22 @@ st.markdown("""
                 }
             });
             if (shouldCheck) {
+                // Run immediately and with slight delay
+                ensureSendButtonVisible();
+                setTimeout(ensureSendButtonVisible, 10);
                 setTimeout(ensureSendButtonVisible, 50);
             }
         });
         
         observer.observe(targetNode, {
             childList: true,
-            subtree: true
+            subtree: true,
+            attributes: true,
+            attributeFilter: ['style', 'class']
         });
+        
+        // Also set up interval as backup (runs every 500ms)
+        setInterval(ensureSendButtonVisible, 500);
         
         // Also listen for Streamlit's custom events
         window.addEventListener('load', ensureSendButtonVisible);
@@ -1522,6 +1629,13 @@ if prompt := st.chat_input("Ask a fact-based question...", key="chat_input"):
     # Add user message to history - will be processed on next rerun
     st.session_state.messages.append({"role": "user", "content": prompt})
     st.rerun()
+
+# Custom Footer with Attribution
+st.markdown("""
+<div class="custom-footer">
+    <p>Made with ❤️ by <strong>Kathan Shah</strong></p>
+</div>
+""", unsafe_allow_html=True)
 
 # Note: Scraper status is checked on each render above
 # Streamlit will naturally rerun when user interacts with the page
