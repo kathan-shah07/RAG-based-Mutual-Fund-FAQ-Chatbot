@@ -22,7 +22,7 @@
     },
     "returns": {
       "1y": "11.4%",
-      "3y": "19.6%",
+      "3y": "19.8%",
       "5y": "23.8%",
       "since_inception": "16.5%"
     },
@@ -34,7 +34,7 @@
         "5y": "17.2%"
       },
       "rank_within_category": {
-        "1y": 13,
+        "1y": 12,
         "3y": 2,
         "5y": 2
       }
@@ -49,23 +49,23 @@
     "top_5_holdings": [
       {
         "name": "HDFC Bank Ltd.",
-        "asset_pct": "8.00%"
+        "asset_pct": "8.36%"
       },
       {
         "name": "Reliance Industries Ltd.",
-        "asset_pct": "6.03%"
+        "asset_pct": "6.25%"
       },
       {
         "name": "ICICI Bank Ltd.",
-        "asset_pct": "4.79%"
-      },
-      {
-        "name": "Axis Bank Ltd.",
-        "asset_pct": "4.38%"
+        "asset_pct": "4.54%"
       },
       {
         "name": "State Bank of India",
-        "asset_pct": "4.37%"
+        "asset_pct": "4.46%"
+      },
+      {
+        "name": "Axis Bank Ltd.",
+        "asset_pct": "4.29%"
       }
     ],
     "advanced_ratios": {
@@ -76,7 +76,7 @@
       "sharpe_ratio": "1.12",
       "sortino_ratio": "1.76",
       "top_5_weight_pct": "28%",
-      "top_20_weight_pct": "65%"
+      "top_20_weight_pct": "64%"
     },
     "peer_comparison_sample": [],
     "source": {
@@ -84,6 +84,6 @@
       "page_ref": "turn0view0"
     },
     "source_url": "https://groww.in/mutual-funds/nippon-india-large-cap-fund-direct-growth",
-    "last_scraped": "2025-11-15"
+    "last_scraped": "2025-11-16"
   }
 ]

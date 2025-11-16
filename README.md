@@ -55,94 +55,45 @@ curl -X POST "http://localhost:8000/api/v1/ingest" \
 
 ## Deployment
 
-### Railway Deployment (Free Tier)
+### Railway Deployment
 
-This application is configured for easy deployment on Railway with automatic deployments from GitHub.
+This application is fully configured for deployment on Railway with automatic deployments from GitHub.
 
-#### Prerequisites
+**📚 Deployment Documentation:**
+- **[Quick Start Guide](RAILWAY_DEPLOYMENT_GUIDE.md)** - Get deployed in 5 minutes
+- **[Complete Deployment Plan](RAILWAY_DEPLOYMENT_PLAN.md)** - Detailed step-by-step guide
+- **[Deployment Checklist](DEPLOYMENT_CHECKLIST.md)** - Pre-flight checklist
 
-- GitHub account with repository
-- Railway account (free tier available)
-- Gemini API key
+#### Quick Start
 
-#### Deployment Steps
-
-1. **Prepare Your Repository**
-   - Ensure all code is committed and pushed to GitHub
-   - The repository should include:
-     - `Dockerfile`
-     - `requirements.txt`
-     - `railway.json` (optional)
-     - All application code
-
-2. **Create Railway Account**
-   - Go to [railway.app](https://railway.app)
-   - Sign up using your GitHub account
-   - Verify your email
-
-3. **Create New Project**
-   - Click "New Project"
-   - Select "Deploy from GitHub repo"
-   - Authorize Railway to access your GitHub account
+1. **Connect Repository to Railway**
+   - Go to [railway.app](https://railway.app) and sign in with GitHub
+   - Click "New Project" → "Deploy from GitHub repo"
    - Select your repository
 
-4. **Configure Environment Variables**
-   In Railway dashboard → Service → Variables, add:
-   
-   **Required:**
-   - `GEMINI_API_KEY`: Your Gemini API key (mark as secret)
-   - `API_HOST`: `0.0.0.0` (required for Railway)
-   
-   **Optional (with defaults):**
-   - `GEMINI_MODEL`: `gemini-1.5-flash`
-   - `GEMINI_EMBEDDING_MODEL`: `models/embedding-001`
-   - `CHROMA_DB_PATH`: `/app/chroma_db`
-   - `DATA_DIR`: `/app/data/mutual_funds`
-   - `COLLECTION_NAME`: `mutual_funds`
-   - `CHUNK_SIZE`: `1000`
-   - `CHUNK_OVERLAP`: `200`
-   - `TOP_K_RESULTS`: `5`
+2. **Set Environment Variables**
+   - Go to Service → Variables
+   - Add `GEMINI_API_KEY` (mark as secret)
+   - Optional: Set other variables (defaults work fine)
 
-   **Note:** Railway automatically sets `PORT` - do not override it.
+3. **Add Persistent Storage** (CRITICAL)
+   - Go to Service → Volumes
+   - Add volume with mount path: `/app/chroma_db`
+   - Size: 100MB (can increase later)
 
-5. **Configure Persistent Storage**
-   - In Railway dashboard → Service → Volumes
-   - Click "Add Volume"
-   - Mount path: `/app/chroma_db`
-   - This ensures ChromaDB data persists across deployments
+4. **Deploy**
+   - Railway will auto-detect Dockerfile and start building
+   - Wait ~5-10 minutes for first build
+   - Get your URL: `your-service.up.railway.app`
 
-   (Optional) Add volume for data directory:
-   - Mount path: `/app/data`
-
-6. **Enable Auto-Deploy**
-   - In Railway dashboard → Service → Settings
-   - Ensure "Auto Deploy" is enabled (default)
-   - Select branch: `main` or `master`
-   - Railway will automatically deploy on every push
-
-7. **Deploy**
-   - Railway will automatically detect the Dockerfile and start building
-   - Monitor the deployment logs in the Railway dashboard
-   - Once deployed, Railway will provide a URL like: `your-service.up.railway.app`
-
-8. **Verify Deployment**
-   - Test health endpoint: `https://your-service.up.railway.app/health`
-   - Test frontend: `https://your-service.up.railway.app/`
-   - Test API: `https://your-service.up.railway.app/api/v1/query`
-
-#### Post-Deployment
-
-1. **Ingest Initial Data**
+5. **Ingest Data**
    ```bash
    curl -X POST "https://your-service.up.railway.app/api/v1/ingest" \
      -H "Content-Type: application/json" \
      -d '{"upsert": true}'
    ```
 
-2. **Configure Scheduled Scraper (Optional)**
-   - Edit `scraper_config.json` in your repository
-   - Set schedule settings (consider longer intervals on free tier)
-   - Push changes to trigger auto-deploy
+**For detailed instructions, see [RAILWAY_DEPLOYMENT_GUIDE.md](RAILWAY_DEPLOYMENT_GUIDE.md)**
 
 #### Railway Free Tier Limits
 
@@ -152,7 +103,7 @@ This application is configured for easy deployment on Railway with automatic dep
 - **Deployments**: Unlimited
 
 **Recommendations for Free Tier:**
-- Disable or use longer intervals for scheduled scraper
+- Disable scheduled scraper or use longer intervals (24+ hours)
 - Monitor resource usage in Railway dashboard
 - Consider optimizing chunk sizes if needed
 
