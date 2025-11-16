@@ -20,6 +20,3 @@ chromadb>=0.4.22
 langchain-community>=0.0.20
 langchain-core>=1.0.0
 
-# Streamlit for deployment
-streamlit>=1.28.0
-

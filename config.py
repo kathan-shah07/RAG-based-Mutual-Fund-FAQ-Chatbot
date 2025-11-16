@@ -1,23 +1,15 @@
 """
 Configuration file for RAG backend.
-Supports both .env files and Streamlit secrets.
+Supports .env files and environment variables.
 """
 import os
 from dotenv import load_dotenv
 
 load_dotenv()
 
-# Try to get from Streamlit secrets first (for Streamlit Cloud), then environment variables
+# Get configuration value from environment variables
 def get_config(key: str, default: str = "") -> str:
-    """Get configuration value from Streamlit secrets or environment variables."""
-    try:
-        import streamlit as st
-        # Try Streamlit secrets first
-        if hasattr(st, 'secrets') and key in st.secrets:
-            return st.secrets[key]
-    except:
-        pass
-    # Fallback to environment variable
+    """Get configuration value from environment variables."""
     return os.getenv(key, default)
 
 # Gemini API Configuration
