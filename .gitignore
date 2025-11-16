@@ -28,3 +28,6 @@ test_chroma_db*/
 *.db
 *.sqlite
 
+# Streamlit Secrets (DO NOT COMMIT)
+.streamlit/secrets.toml
+

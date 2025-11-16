@@ -1,202 +1,259 @@
-# RAG-based Mutual Fund Chatbot
+# Mutual Fund FAQ Assistant
 
-A RAG (Retrieval-Augmented Generation) based chatbot system for querying mutual fund information. The system uses Google Gemini as the LLM and embedding model, ChromaDB as the vector database, and LangChain for orchestration.
+A Streamlit-based chatbot that provides factual information about mutual funds using RAG (Retrieval-Augmented Generation) with Google Gemini AI and ChromaDB.
 
 ## Features
 
-- **RAG-based Q&A**: Ask questions about mutual funds and get accurate answers with source citations
-- **Web Scraping**: Automated scraping of mutual fund data from Groww
-- **Scheduled Updates**: Automatic data refresh with configurable schedules
-- **Web Interface**: Modern, responsive chat interface
-- **PII Protection**: Built-in detection and blocking of personally identifiable information
-- **Factual Only**: Validates questions to prevent investment advice, focuses on factual information
+- 💬 Interactive chat interface for asking questions about mutual funds
+- 🔍 RAG-powered responses with source citations
+- 🕷️ Automatic web scraping at configured intervals
+- 📊 Vector database for efficient document retrieval
+- ✅ PII detection and validation
+- 🚫 Investment advice restrictions (facts-only)
 
-## Technology Stack
+## How to Use
 
-- **FastAPI**: Modern, fast web framework
-- **LangChain**: LLM application framework
-- **Google Gemini**: LLM and embedding model
-- **ChromaDB**: Vector database for embeddings
-- **Playwright**: Web scraping automation
-- **Python 3.11+**: Backend runtime
+### Prerequisites
 
-## Quick Start
+- Python 3.8 or higher
+- Google Gemini API key ([Get one here](https://makersuite.google.com/app/apikey))
+- Git (optional, for cloning the repository)
 
-### Local Development
-
-1. **Install Dependencies**
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-2. **Set Environment Variables**
-   ```bash
-   cp .env.example .env
-   # Edit .env and add your GEMINI_API_KEY
-   ```
-
-3. **Start the Server**
-   ```bash
-   python start_frontend.py
-   ```
-   This will start the FastAPI server and open the browser automatically.
-
-4. **Access the Application**
-   - Frontend: http://localhost:8000
-   - API Docs: http://localhost:8000/docs
-
-### Ingest Data
+### Step 1: Clone or Download the Repository
 
 ```bash
-curl -X POST "http://localhost:8000/api/v1/ingest" \
-  -H "Content-Type: application/json" \
-  -d '{"upsert": true}'
+git clone <your-repository-url>
+cd MF-Chatbot
 ```
 
-## Deployment
+Or download and extract the ZIP file.
 
-### Streamlit Cloud Deployment
+### Step 2: Create Virtual Environment (Recommended)
 
-This application is configured for deployment on Streamlit Cloud.
+```bash
+# On Windows
+python -m venv venv
+venv\Scripts\activate
 
-**📚 Deployment Documentation:**
-- **[Streamlit Deployment Guide](STREAMLIT_DEPLOYMENT_GUIDE.md)** - Complete deployment guide
-
-#### Quick Start
-
-1. **Push to GitHub**
-   - Ensure all code is committed and pushed to GitHub
-   - Repository should include `app.py` (Streamlit app)
-
-2. **Deploy on Streamlit Cloud**
-   - Go to [share.streamlit.io](https://share.streamlit.io)
-   - Sign in with GitHub
-   - Click "New app"
-   - Select your repository
-   - Main file: `app.py`
-   - Click "Deploy"
-
-3. **Set Secrets** (Environment Variables)
-   - Go to Settings → Secrets
-   - Add `GEMINI_API_KEY` (your Gemini API key)
-   - Optional: Add other config variables (defaults work fine)
-
-4. **Access Your App**
-   - Your app will be live at: `https://your-app-name.streamlit.app`
-   - Streamlit Cloud auto-redeploys on every push
-
-**For detailed instructions, see [STREAMLIT_DEPLOYMENT_GUIDE.md](STREAMLIT_DEPLOYMENT_GUIDE.md)**
-
-#### Streamlit Cloud Features
-
-- ✅ **Free tier** - Unlimited apps
-- ✅ **Auto-deploy** - Deploys on every Git push
-- ✅ **Easy setup** - Just connect GitHub repo
-- ✅ **Custom domains** - Available in Pro tier
-- ✅ **Private repos** - Available in Pro tier
-
-#### Architecture
-
-**Integrated Backend in Streamlit**
-- Streamlit app (`app.py`) includes all backend functionality
-- Vector store (ChromaDB) and RAG chain initialized directly in Streamlit
-- No separate FastAPI server needed
-- Single deployment on Streamlit Cloud
-- Backend components cached using `@st.cache_resource` for performance
-
-## API Endpoints
-
-### Health Check
-```
-GET /health
+# On macOS/Linux
+python3 -m venv venv
+source venv/bin/activate
 ```
 
-### Ingest Documents
-```
-POST /api/v1/ingest
-Body: {"upsert": true}
+### Step 3: Install Dependencies
+
+```bash
+pip install -r requirements.txt
 ```
 
-### Query RAG System
+### Step 4: Configure API Key
+
+You have two options for setting your Gemini API key:
+
+#### Option A: Using Streamlit Secrets (Recommended for Streamlit Cloud)
+
+Create `.streamlit/secrets.toml` file:
+
+```toml
+GEMINI_API_KEY = "your-gemini-api-key-here"
 ```
-POST /api/v1/query
-Body: {
-  "question": "What is the expense ratio of Nippon India Large Cap Fund?",
-  "return_sources": true
+
+#### Option B: Using Environment Variables (For Local Development)
+
+Create a `.env` file in the root directory:
+
+```env
+GEMINI_API_KEY=your-gemini-api-key-here
+```
+
+**Important:** Never commit your API key to version control!
+
+### Step 5: Configure Scraper (Optional)
+
+The scraper automatically runs at intervals defined in `scraper_config.json`. Edit this file to:
+
+- Change scraping intervals
+- Add/remove URLs to scrape
+- Configure scraper settings
+
+Example `scraper_config.json`:
+
+```json
+{
+  "scraper_settings": {
+    "output_dir": "./data/mutual_funds",
+    "download_dir": "./data/downloaded_html",
+    "use_interactive": true,
+    "download_first": true,
+    "retry_failed": true,
+    "max_retries": 3
+  },
+  "urls": [
+    {
+      "url": "https://groww.in/mutual-funds/nippon-india-elss-tax-saver-fund-direct-growth"
+    }
+  ],
+  "schedule": {
+    "enabled": true,
+    "interval_type": "hourly",
+    "interval_hours": 1,
+    "auto_ingest_after_scrape": true
+  }
 }
 ```
 
-### Search Similar Documents
-```
-POST /api/v1/search
-Body: {
-  "query": "large cap funds",
-  "k": 5
-}
+### Step 6: Ingest Initial Data (Optional)
+
+If you have existing JSON data files, ingest them into the vector database:
+
+```bash
+python scripts/ingest_data.py
 ```
 
-### Scraper Status
-```
-GET /api/v1/scraper-status
+Or use the ingestion script directly:
+
+```python
+from scripts.ingest_data import main
+main()
 ```
 
-### Trigger Scraping
-```
-POST /api/v1/scrape
+### Step 7: Run the Application
+
+Start the Streamlit app:
+
+```bash
+streamlit run app.py
 ```
 
-See `/docs` endpoint for interactive API documentation.
+The app will:
+- Open automatically in your default browser at `http://localhost:8501`
+- Initialize the vector database and RAG chain
+- Start the scheduled scraper service in the background (if enabled)
+
+### Step 8: Use the Chat Interface
+
+1. **Ask Questions**: Type your question in the chat input at the bottom
+2. **Example Questions**: Click on example questions in the sidebar to try them out
+3. **View Sources**: Expand the "Sources" section to see where the information came from
+4. **Clear Chat**: Use the "Clear Chat History" button in the sidebar to reset the conversation
+
+## Example Questions
+
+- "What is the expense ratio of Nippon India Large Cap Fund?"
+- "What is the lock-in period for ELSS funds?"
+- "What is the minimum SIP amount?"
+- "What are the returns of Nippon India Flexi Cap Fund?"
+- "What is the AUM of Nippon India Growth Mid Cap Fund?"
 
 ## Project Structure
 
 ```
 MF-Chatbot/
-├── app.py                  # Streamlit app (main entry point)
-├── api/                    # FastAPI application
-│   └── main.py            # FastAPI app
-├── ingestion/              # Document processing
-├── vector_store/           # ChromaDB integration
-├── retrieval/              # RAG implementation
-├── scrapers/               # Web scraping
-├── scripts/                # Utility scripts
-├── static/                 # Frontend files (HTML/JS/CSS)
-├── data/                   # Source data
-├── chroma_db/              # Vector database (local)
-├── .streamlit/             # Streamlit configuration
-│   └── config.toml
-├── Dockerfile              # Optional (for other platforms)
-└── requirements.txt        # Python dependencies
+├── app.py                 # Main Streamlit application
+├── config.py              # Configuration management
+├── requirements.txt       # Python dependencies
+├── scraper_config.json    # Scraper configuration
+├── .streamlit/
+│   ├── config.toml       # Streamlit configuration
+│   └── secrets.toml      # API keys (not in git)
+├── api/
+│   └── validation.py      # Input validation functions
+├── ingestion/
+│   ├── document_loader.py # Load JSON documents
+│   └── chunker.py         # Document chunking
+├── retrieval/
+│   └── rag_chain.py       # RAG chain implementation
+├── scrapers/
+│   └── groww_scraper.py   # Web scraper
+├── scripts/
+│   ├── ingest_data.py     # Data ingestion script
+│   └── scheduled_scraper.py # Scheduled scraper service
+└── vector_store/
+    └── chroma_store.py    # ChromaDB vector store
 ```
 
 ## Configuration
 
-See `ARCHITECTURE.md` for detailed architecture documentation.
+### Environment Variables
 
-Environment variables are configured in `.env` file (local) or Streamlit Cloud secrets (production).
+- `GEMINI_API_KEY` - Required: Your Google Gemini API key
+- `GEMINI_MODEL` - Optional: Model name (default: "gemini-1.5-flash")
+- `GEMINI_EMBEDDING_MODEL` - Optional: Embedding model (default: "models/embedding-001")
+- `CHROMA_DB_PATH` - Optional: Path to ChromaDB (default: "./chroma_db")
+- `COLLECTION_NAME` - Optional: Collection name (default: "mutual_funds")
+- `DATA_DIR` - Optional: Data directory (default: "./data/mutual_funds")
+- `CHUNK_SIZE` - Optional: Chunk size (default: 1000)
+- `CHUNK_OVERLAP` - Optional: Chunk overlap (default: 200)
+- `TOP_K_RESULTS` - Optional: Top K results (default: 5)
+
+### Streamlit Secrets
+
+For Streamlit Cloud deployment, add secrets via the dashboard:
+
+1. Go to your app → Settings → Secrets
+2. Add your `GEMINI_API_KEY` and other configuration values
+
+## Deployment to Streamlit Cloud
+
+1. Push your code to GitHub
+2. Go to [share.streamlit.io](https://share.streamlit.io)
+3. Click "New app"
+4. Connect your GitHub repository
+5. Set the main file path to `app.py`
+6. Add secrets via Settings → Secrets
+7. Deploy!
+
+## Troubleshooting
+
+### "GEMINI_API_KEY not found" Error
+
+- Make sure you've created `.streamlit/secrets.toml` or `.env` file
+- Verify the API key is correct
+- For Streamlit Cloud, add it via the Secrets dashboard
+
+### "Backend not initialized" Error
+
+- Check that your API key is valid
+- Ensure all dependencies are installed: `pip install -r requirements.txt`
+- Check the terminal for detailed error messages
+
+### Scraper Not Running
+
+- Check `scraper_config.json` - ensure `schedule.enabled` is `true`
+- Verify Playwright browsers are installed: `playwright install`
+- Check the sidebar for scraper status
+
+### No Documents in Database
+
+- Run the ingestion script: `python scripts/ingest_data.py`
+- Ensure JSON files exist in `./data/mutual_funds/`
+- Check that the scraper has run and created data files
 
 ## Development
 
 ### Running Tests
+
 ```bash
 pytest tests/
 ```
 
-### Local Development Server
-```bash
-python start_frontend.py
-# Or
-uvicorn api.main:app --reload
-```
+### Adding New Data Sources
+
+1. Add JSON files to `./data/mutual_funds/`
+2. Run ingestion: `python scripts/ingest_data.py`
+3. The data will be automatically available in the chat
+
+### Modifying Scraper
+
+Edit `scraper_config.json` to:
+- Change URLs to scrape
+- Adjust scraping intervals
+- Modify scraper behavior
 
 ## License
 
 [Add your license here]
 
-## Contributing
-
-[Add contribution guidelines here]
-
 ## Support
 
-For issues and questions, please open an issue on GitHub.
-
+For issues or questions, please open an issue on GitHub.
