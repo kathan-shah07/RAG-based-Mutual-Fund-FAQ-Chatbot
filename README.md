@@ -79,7 +79,7 @@ This application is configured for deployment on Streamlit Cloud.
 3. **Set Secrets** (Environment Variables)
    - Go to Settings → Secrets
    - Add `GEMINI_API_KEY` (your Gemini API key)
-   - Add `API_BASE_URL` (if using separate FastAPI backend)
+   - Optional: Add other config variables (defaults work fine)
 
 4. **Access Your App**
    - Your app will be live at: `https://your-app-name.streamlit.app`
@@ -95,16 +95,14 @@ This application is configured for deployment on Streamlit Cloud.
 - ✅ **Custom domains** - Available in Pro tier
 - ✅ **Private repos** - Available in Pro tier
 
-#### Architecture Options
+#### Architecture
 
-**Option 1: Streamlit + Separate FastAPI Backend** (Recommended)
-- Deploy Streamlit app on Streamlit Cloud
-- Deploy FastAPI backend separately (Railway, Render, etc.)
-- Streamlit calls FastAPI API endpoints
-
-**Option 2: Pure Streamlit**
-- Run everything in Streamlit (requires code refactoring)
-- Single deployment, simpler setup
+**Integrated Backend in Streamlit**
+- Streamlit app (`app.py`) includes all backend functionality
+- Vector store (ChromaDB) and RAG chain initialized directly in Streamlit
+- No separate FastAPI server needed
+- Single deployment on Streamlit Cloud
+- Backend components cached using `@st.cache_resource` for performance
 
 ## API Endpoints
 

@@ -49,84 +49,65 @@ git push origin main
    - Add your secrets:
    ```toml
    GEMINI_API_KEY=your_gemini_api_key_here
-   API_BASE_URL=http://localhost:8000
    ```
    
-   **Note:** For Streamlit-only deployment, you can also run the FastAPI backend within Streamlit or use a separate service.
+   **Optional secrets** (defaults work fine):
+   ```toml
+   CHROMA_DB_PATH=./chroma_db
+   DATA_DIR=./data/mutual_funds
+   GEMINI_MODEL=gemini-1.5-flash
+   GEMINI_EMBEDDING_MODEL=models/embedding-001
+   COLLECTION_NAME=mutual_funds
+   ```
+   
+   **Note:** The app includes all backend functionality - no separate API server needed!
 
 5. **Deploy**
    - Click **"Deploy"**
    - Wait 2-5 minutes for deployment
    - Your app will be live at: `https://your-app-name.streamlit.app`
 
-## Architecture Options
+## Architecture
 
-### Option 1: Streamlit + Separate FastAPI Backend (Recommended)
-
-**Setup:**
-- Streamlit app (`app.py`) calls FastAPI API endpoints
-- FastAPI backend runs separately (Railway, Render, etc.)
-- Set `API_BASE_URL` in Streamlit secrets to your FastAPI URL
-
-**Pros:**
-- ✅ Separation of concerns
-- ✅ Can scale independently
-- ✅ FastAPI API can be used by other clients
-
-**Cons:**
-- ⚠️ Requires two deployments
-
-### Option 2: Streamlit with Embedded Backend
+### Current Setup: Integrated Backend in Streamlit
 
 **Setup:**
-- Run FastAPI server within Streamlit app
-- Use subprocess or threading to start FastAPI
-- Streamlit calls localhost API
+- Streamlit app (`app.py`) includes all backend functionality
+- Vector store (ChromaDB) and RAG chain initialized directly in Streamlit
+- No separate FastAPI server needed
+- Single deployment on Streamlit Cloud
 
 **Pros:**
 - ✅ Single deployment
 - ✅ Simpler setup
+- ✅ No API server needed
+- ✅ All functionality in one place
 
-**Cons:**
-- ⚠️ More complex code
-- ⚠️ Resource sharing between Streamlit and FastAPI
-
-### Option 3: Pure Streamlit (No FastAPI)
-
-**Setup:**
-- Rewrite backend logic directly in Streamlit
-- No FastAPI dependency
-
-**Pros:**
-- ✅ Simplest deployment
-- ✅ Single codebase
-
-**Cons:
-- ⚠️ Requires code refactoring
-- ⚠️ Lose FastAPI API endpoints
-
-## Current Setup
-
-The current `app.py` uses **Option 1** - it calls FastAPI endpoints. You have two choices:
-
-### Choice A: Deploy Both Separately
-1. Deploy FastAPI backend on Railway/Render
-2. Deploy Streamlit app on Streamlit Cloud
-3. Set `API_BASE_URL` in Streamlit secrets
-
-### Choice B: Run FastAPI in Streamlit
-I can create a version that runs FastAPI within Streamlit. Let me know if you want this!
+**How it works:**
+- Backend components (vector store, RAG chain) are initialized using `@st.cache_resource`
+- Initialization happens once and is cached across reruns
+- All query processing happens directly in Streamlit
+- Validation (PII, comparison) is included
 
 ## Environment Variables (Secrets)
 
 In Streamlit Cloud → Settings → Secrets, add:
 
+**Required:**
 ```toml
 GEMINI_API_KEY=your_api_key_here
-API_BASE_URL=https://your-fastapi-backend.com
+```
+
+**Optional (defaults work fine):**
+```toml
 CHROMA_DB_PATH=./chroma_db
 DATA_DIR=./data/mutual_funds
+GEMINI_MODEL=gemini-1.5-flash
+GEMINI_EMBEDDING_MODEL=models/embedding-001
+COLLECTION_NAME=mutual_funds
 ```
+
+**Note:** The app reads from Streamlit secrets automatically. No separate API server needed!
 
 ## Streamlit Cloud Free Tier
 
@@ -143,10 +124,10 @@ DATA_DIR=./data/mutual_funds
 - Verify `requirements.txt` is correct
 - Check build logs in Streamlit Cloud dashboard
 
-### API Connection Errors
-- Verify `API_BASE_URL` is set correctly in secrets
-- Make sure FastAPI backend is running and accessible
-- Check CORS settings if needed
+### Backend Initialization Errors
+- Verify `GEMINI_API_KEY` is set correctly in secrets
+- Check that ChromaDB can be initialized (data directory exists)
+- Review initialization error messages in the sidebar
 
 ### Import Errors
 - Verify all dependencies in `requirements.txt`
