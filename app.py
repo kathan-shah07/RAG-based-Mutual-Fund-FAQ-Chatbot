@@ -474,7 +474,7 @@ st.markdown("""
         opacity: 1 !important;
     }
     
-    /* Style Send button specifically - WhatsApp style rounded rectangle button */
+    /* Style Send button specifically - WhatsApp style rounded rectangle button with arrow */
     .stChatInput > div > div > div > button:last-child,
     .stChatInput > div > div > button:last-child,
     .stChatInput button[kind="primary"],
@@ -491,10 +491,11 @@ st.markdown("""
         color: white !important;
         border: none !important;
         border-radius: 24px !important;
-        width: auto !important;
-        height: 40px !important;
-        min-width: 40px !important;
-        padding: 8px 16px !important;
+        width: 48px !important;
+        height: 48px !important;
+        min-width: 48px !important;
+        max-width: 48px !important;
+        padding: 0 !important;
         align-items: center !important;
         justify-content: center !important;
         cursor: pointer !important;
@@ -502,16 +503,33 @@ st.markdown("""
         position: relative !important;
         z-index: 999 !important;
         box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3) !important;
-        font-size: 18px !important;
-        font-weight: 500 !important;
+        font-size: 24px !important;
+        font-weight: 600 !important;
+        line-height: 1 !important;
     }
     
-    /* Arrow icon for send button */
+    /* Arrow icon for send button - make it prominent */
     .send-button-arrow {
-        display: inline-block !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
         margin: 0 !important;
         padding: 0 !important;
         line-height: 1 !important;
+        font-size: 24px !important;
+        font-weight: 700 !important;
+        color: white !important;
+        width: 100% !important;
+        height: 100% !important;
+    }
+    
+    /* Ensure button content shows arrow */
+    .stChatInput button:not([aria-label*="microphone"]):not([aria-label*="Mic"])::before {
+        content: '→' !important;
+        display: inline-block !important;
+        font-size: 24px !important;
+        font-weight: 700 !important;
+        color: white !important;
     }
     
     .stChatInput > div > div > div > button:last-child:hover,
@@ -1483,16 +1501,18 @@ st.markdown("""
                 button.style.setProperty('color', 'white', 'important');
                 button.style.setProperty('border', 'none', 'important');
                 button.style.setProperty('border-radius', '24px', 'important');
-                button.style.setProperty('width', 'auto', 'important');
-                button.style.setProperty('height', '40px', 'important');
-                button.style.setProperty('min-width', '40px', 'important');
-                button.style.setProperty('padding', '8px 16px', 'important');
+                button.style.setProperty('width', '48px', 'important');
+                button.style.setProperty('height', '48px', 'important');
+                button.style.setProperty('min-width', '48px', 'important');
+                button.style.setProperty('max-width', '48px', 'important');
+                button.style.setProperty('padding', '0', 'important');
                 button.style.setProperty('align-items', 'center', 'important');
                 button.style.setProperty('justify-content', 'center', 'important');
                 button.style.setProperty('cursor', 'pointer', 'important');
                 button.style.setProperty('z-index', '999', 'important');
-                button.style.setProperty('font-size', '18px', 'important');
-                button.style.setProperty('font-weight', '500', 'important');
+                button.style.setProperty('font-size', '24px', 'important');
+                button.style.setProperty('font-weight', '700', 'important');
+                button.style.setProperty('line-height', '1', 'important');
                 button.style.setProperty('box-shadow', '0 2px 8px rgba(102, 126, 234, 0.3)', 'important');
                 button.style.setProperty('position', 'relative', 'important');
                 button.style.setProperty('transition', 'all 0.2s ease', 'important');
@@ -1513,22 +1533,9 @@ st.markdown("""
                         }
                     });
                     
-                    // Create WhatsApp-style send icon (right arrow)
-                    const arrow = document.createElement('span');
-                    arrow.className = 'send-button-arrow';
-                    // Use right arrow like WhatsApp
-                    arrow.innerHTML = '→';
-                    arrow.style.display = 'inline-flex';
-                    arrow.style.alignItems = 'center';
-                    arrow.style.justifyContent = 'center';
-                    arrow.style.margin = '0';
-                    arrow.style.padding = '0';
-                    arrow.style.lineHeight = '1';
-                    arrow.style.fontSize = '20px';
-                    arrow.style.fontWeight = '600';
-                    // Clear any existing content and add arrow
-                    button.innerHTML = '';
-                    button.appendChild(arrow);
+                    // Create WhatsApp-style send icon (right arrow) - make it prominent
+                    // Simply set the button content to show a large arrow
+                    button.innerHTML = '<span style="font-size: 24px; font-weight: 700; color: white; display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; line-height: 1;">→</span>';
                 }
                 
                 // Add hover effect (check if already added)
