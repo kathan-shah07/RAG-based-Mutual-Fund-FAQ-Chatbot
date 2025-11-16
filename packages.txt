@@ -1,0 +1,24 @@
+# System packages required for browser automation on Streamlit Cloud
+# Chrome/Chromium dependencies
+google-chrome-stable
+chromium-browser
+chromium-chromedriver
+
+# Alternative: if above don't work, try these
+# google-chrome-beta
+# google-chrome-unstable
+
+# System libraries for browser automation
+libnss3
+libatk-bridge2.0-0
+libdrm2
+libxkbcommon0
+libxcomposite1
+libxdamage1
+libxfixes3
+libxrandr2
+libgbm1
+libasound2
+libatspi2.0-0
+libgtk-3-0
+

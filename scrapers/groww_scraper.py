@@ -14,22 +14,20 @@ from urllib.parse import urlparse
 import requests
 from bs4 import BeautifulSoup
 
-# Playwright commented out - using Selenium by default
-# try:
-#     from playwright.sync_api import sync_playwright
-#     PLAYWRIGHT_AVAILABLE = True
-# except ImportError:
-#     PLAYWRIGHT_AVAILABLE = False
-PLAYWRIGHT_AVAILABLE = False
+# Try Playwright first (works better on cloud environments)
+try:
+    from playwright.sync_api import sync_playwright
+    PLAYWRIGHT_AVAILABLE = True
+except ImportError:
+    PLAYWRIGHT_AVAILABLE = False
 
 # Try async Playwright as fallback for Python 3.13 compatibility
-# try:
-#     from playwright.async_api import async_playwright
-#     import asyncio
-#     ASYNC_PLAYWRIGHT_AVAILABLE = True
-# except ImportError:
-#     ASYNC_PLAYWRIGHT_AVAILABLE = False
-ASYNC_PLAYWRIGHT_AVAILABLE = False
+try:
+    from playwright.async_api import async_playwright
+    import asyncio
+    ASYNC_PLAYWRIGHT_AVAILABLE = True
+except ImportError:
+    ASYNC_PLAYWRIGHT_AVAILABLE = False
 
 def _is_main_thread():
     """Check if we're running in the main thread."""
@@ -79,8 +77,7 @@ class GrowwScraper:
     
     def fetch_page(self, url: str) -> Optional[str]:
         """
-        Fetch webpage content using requests first, fallback to Selenium if needed.
-        Selenium is used by default for dynamic content.
+        Fetch webpage content using Playwright first (best for cloud), then Selenium, then requests.
         
         Args:
             url: URL to fetch
@@ -88,7 +85,22 @@ class GrowwScraper:
         Returns:
             HTML content as string, or None if failed
         """
-        # Try requests first
+        # Try Playwright first (works best on cloud environments)
+        if PLAYWRIGHT_AVAILABLE:
+            try:
+                playwright_result = self._fetch_with_playwright(url, interactive=True)
+                if playwright_result:
+                    html, page_obj, browser, playwright_instance = playwright_result
+                    try:
+                        browser.close()
+                        playwright_instance.stop()
+                    except:
+                        pass
+                    return html
+            except Exception as e:
+                print(f"Playwright failed, trying alternatives: {e}")
+        
+        # Try requests first (fastest)
         try:
             response = self.session.get(url, timeout=30)
             response.raise_for_status()
@@ -96,7 +108,8 @@ class GrowwScraper:
             
             # Check if page is blocked or dynamic content is missing
             if self._is_blocked_or_empty(html):
-                print(f"Page appears blocked or empty, trying Selenium...")
+                print(f"Page appears blocked or empty, trying browser automation...")
+                # Try Selenium as fallback
                 selenium_html = self._fetch_with_selenium(url)
                 if selenium_html:
                     return selenium_html
@@ -104,7 +117,8 @@ class GrowwScraper:
             
             return html
         except requests.RequestException as e:
-            print(f"Request failed: {e}, trying Selenium...")
+            print(f"Request failed: {e}, trying browser automation...")
+            # Try Selenium as fallback
             selenium_html = self._fetch_with_selenium(url)
             if selenium_html:
                 return selenium_html
@@ -128,41 +142,121 @@ class GrowwScraper:
         
         return False
     
-    # Playwright methods commented out - using Selenium by default
     def _fetch_with_playwright(self, url: str, interactive: bool = True) -> Optional[tuple]:
         """
-        Playwright method commented out - using Selenium instead.
-        This method is kept for future reference but always returns None.
+        Fetch page using Playwright (works better on cloud environments).
+        
+        Returns:
+            Tuple of (html, page_obj, browser, playwright_context) or None if failed
         """
-        # Playwright disabled - using Selenium by default
-        return None
+        if not PLAYWRIGHT_AVAILABLE:
+            return None
+        
+        try:
+            playwright = sync_playwright().start()
+            browser = playwright.chromium.launch(
+                headless=True,
+                args=['--no-sandbox', '--disable-setuid-sandbox']
+            )
+            context = browser.new_context(
+                viewport={'width': 1920, 'height': 1080},
+                user_agent='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+            )
+            page = context.new_page()
+            
+            # Navigate to URL
+            page.goto(url, wait_until='networkidle', timeout=60000)
+            
+            # Wait for content to load
+            import time
+            time.sleep(3)
+            
+            # Scroll to load lazy content
+            page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
+            time.sleep(2)
+            page.evaluate("window.scrollTo(0, 0)")
+            time.sleep(1)
+            
+            # Scroll gradually
+            for i in range(5):
+                scroll_position = (i + 1) / 5
+                page.evaluate(f"window.scrollTo(0, document.body.scrollHeight * {scroll_position})")
+                time.sleep(1)
+            
+            page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
+            time.sleep(2)
+            
+            # Get HTML
+            html = page.content()
+            
+            # Store playwright instance for cleanup
+            playwright_instance = playwright
+            
+            return (html, page, browser, playwright_instance)
+        except Exception as e:
+            print(f"Playwright failed: {e}")
+            try:
+                if 'browser' in locals():
+                    browser.close()
+                if 'playwright' in locals():
+                    playwright.stop()
+            except:
+                pass
+            return None
     
-    # Async Playwright method commented out - using Selenium instead
     def _fetch_with_async_playwright(self, url: str, interactive: bool = True) -> Optional[tuple]:
         """
-        Async Playwright method commented out - using Selenium instead.
-        This method is kept for future reference but always returns None.
+        Async Playwright method - kept for compatibility but not used in sync context.
         """
-        # Playwright disabled - using Selenium by default
+        # Not used in sync context - return None
         return None
     
     def _fetch_with_selenium(self, url: str) -> Optional[str]:
         """
         Fetch page using Selenium with dynamic content loading.
         Enhanced to handle lazy-loaded content similar to Playwright.
+        Configured for Streamlit Cloud compatibility.
         """
         if not SELENIUM_AVAILABLE:
             print("Selenium not available. Please install it or use Playwright.")
             return None
         
         try:
+            # Try to use chromedriver-autoinstaller for automatic ChromeDriver setup
+            try:
+                import chromedriver_autoinstaller
+                chromedriver_autoinstaller.install()
+            except ImportError:
+                # chromedriver-autoinstaller not available, try system ChromeDriver
+                pass
+            except Exception as e:
+                print(f"Warning: chromedriver-autoinstaller failed: {e}")
+            
             options = Options()
             options.add_argument('--headless')
             options.add_argument('--no-sandbox')
             options.add_argument('--disable-dev-shm-usage')
+            options.add_argument('--disable-gpu')
             options.add_argument('--disable-blink-features=AutomationControlled')
+            options.add_argument('--disable-extensions')
+            options.add_argument('--disable-software-rasterizer')
+            options.add_argument('--disable-background-timer-throttling')
+            options.add_argument('--disable-backgrounding-occluded-windows')
+            options.add_argument('--disable-renderer-backgrounding')
             options.add_experimental_option("excludeSwitches", ["enable-automation"])
             options.add_experimental_option('useAutomationExtension', False)
+            
+            # Try to find Chrome binary in common locations (for Streamlit Cloud)
+            chrome_binary_paths = [
+                '/usr/bin/google-chrome',
+                '/usr/bin/chromium',
+                '/usr/bin/chromium-browser',
+                '/snap/bin/chromium',
+            ]
+            for chrome_path in chrome_binary_paths:
+                if os.path.exists(chrome_path):
+                    options.binary_location = chrome_path
+                    break
             
             driver = webdriver.Chrome(options=options)
             driver.get(url)
@@ -2601,17 +2695,14 @@ class GrowwScraper:
         print(f"Fetching: {url}")
         
         # Try Playwright first for dynamic content if enabled
-        page_obj = None
-        browser = None
-        
-        playwright_context = None
+        playwright_instance = None
         page_obj = None
         browser = None
         
         if self.use_interactive and PLAYWRIGHT_AVAILABLE:
             playwright_result = self._fetch_with_playwright(url, interactive=True)
             if playwright_result:
-                html, page_obj, browser, playwright_context = playwright_result
+                html, page_obj, browser, playwright_instance = playwright_result
                 soup = BeautifulSoup(html, 'lxml')
             else:
                 # Fallback to regular fetch
@@ -2634,15 +2725,15 @@ class GrowwScraper:
         try:
             data = self.extract_detailed_data(soup, page_text, page_obj)
         finally:
-            # Close browser and playwright context if opened
+            # Close browser and playwright instance if opened
             if browser:
                 try:
                     browser.close()
                 except:
                     pass
-            if playwright_context:
+            if playwright_instance:
                 try:
-                    playwright_context.stop()
+                    playwright_instance.stop()
                 except:
                     pass
         

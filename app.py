@@ -6,8 +6,12 @@ import streamlit as st
 import os
 import sys
 import threading
+import logging
 from datetime import datetime
 from pathlib import Path
+
+# Configure logging
+logger = logging.getLogger(__name__)
 
 # Add parent directory to path for imports
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -606,6 +610,17 @@ if "scraper_started" not in st.session_state:
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
+def is_streamlit_cloud():
+    """Check if running on Streamlit Cloud."""
+    # Streamlit Cloud sets these environment variables
+    # Check multiple indicators to be sure
+    return (
+        os.getenv("STREAMLIT_SHARING") == "true" or 
+        os.getenv("STREAMLIT_SERVER_PORT") == "8501" or
+        os.getenv("STREAMLIT_SERVER_ADDRESS") is not None or
+        "/mount/src/" in os.getcwd()  # Streamlit Cloud uses /mount/src/ as working directory
+    )
+
 @st.cache_resource
 def initialize_backend():
     """
@@ -623,12 +638,13 @@ def initialize_backend():
         # Initialize RAG chain
         rag_chain = RAGChain(vector_store)
         
-        # Initialize scraper (optional, may fail if config not found)
+        # Initialize scraper (enabled on Streamlit Cloud)
         scraper = None
         try:
             scraper = ScheduledScraper(config_path="scraper_config.json")
         except Exception as e:
-            # Scraper initialization is optional
+            # Scraper initialization is optional - log but continue
+            logger.warning(f"Scraper initialization failed: {e}")
             pass
         
         return vector_store, rag_chain, scraper, None
@@ -647,8 +663,30 @@ if not st.session_state.initialized:
             st.session_state.rag_chain = rag_chain
             st.session_state.scraper = scraper
             st.session_state.initialized = True
+            
+            # On Streamlit Cloud, automatically ingest pre-populated data if available
+            if is_streamlit_cloud() and vector_store:
+                try:
+                    # Check if data files exist but vector DB is empty
+                    from pathlib import Path
+                    data_dir = Path(config.DATA_DIR)
+                    if data_dir.exists():
+                        json_files = list(data_dir.rglob("*.json"))
+                        if json_files:
+                            # Check if vector DB has documents
+                            collection_info = vector_store.get_collection_info()
+                            doc_count = collection_info.get("document_count", 0)
+                            
+                            if doc_count == 0:
+                                # Data files exist but not ingested - ingest them
+                                from scripts.ingest_data import main as ingest_data
+                                ingest_data()
+                except Exception as e:
+                    # Ingestion failure is not critical - log but continue
+                    pass
 
 # Start scheduled scraper in background if not already started
+# Enabled on Streamlit Cloud
 if st.session_state.scraper and not st.session_state.scraper_started:
     try:
         # Start the scraper scheduler in a background thread
@@ -656,6 +694,7 @@ if st.session_state.scraper and not st.session_state.scraper_started:
         st.session_state.scraper_started = True
     except Exception as e:
         # Scraper start failure is not critical, continue
+        logger.warning(f"Scraper start failed: {e}")
         pass
 
 # Helper function to format date in Indian format
