@@ -292,6 +292,8 @@ with st.sidebar:
                         total = scraper_status.get("urls_total", 0)
                         st.progress(processed / total if total > 0 else 0)
                         st.caption(f"{processed}/{total} URLs processed")
+            except Exception:
+                pass
     else:
         st.warning("⏳ Initializing...")
     
