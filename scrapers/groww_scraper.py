@@ -156,7 +156,7 @@ class GrowwScraper:
             playwright = sync_playwright().start()
             browser = playwright.chromium.launch(
                 headless=True,
-                args=['--no-sandbox', '--disable-setuid-sandbox']
+                args=['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage']
             )
             context = browser.new_context(
                 viewport={'width': 1920, 'height': 1080},
@@ -2768,6 +2768,7 @@ class GrowwScraper:
         """
         Download HTML content and save to file for later scraping.
         Ensures Fund Objective section is loaded by scrolling.
+        Prioritizes Playwright (best for cloud), then Selenium, then requests.
         
         Args:
             url: URL to download
@@ -2778,17 +2779,33 @@ class GrowwScraper:
         print(f"Downloading HTML: {url}")
         
         html = None
-        page_obj = None
-        browser = None
-        playwright_context = None
         
-        # Use Selenium by default (Playwright commented out)
-        # Selenium handles dynamic content loading with scrolling and button clicking
-        if self.use_interactive and SELENIUM_AVAILABLE:
-            print("Using Selenium to download webpage with dynamic content...")
-            html = self._fetch_with_selenium(url)
-        else:
-            # Fallback to requests if Selenium not available
+        # Try Playwright first (works best on cloud environments)
+        if self.use_interactive and PLAYWRIGHT_AVAILABLE:
+            try:
+                print("Using Playwright to download webpage with dynamic content...")
+                playwright_result = self._fetch_with_playwright(url, interactive=True)
+                if playwright_result:
+                    html, page_obj, browser, playwright_instance = playwright_result
+                    try:
+                        browser.close()
+                        playwright_instance.stop()
+                    except:
+                        pass
+            except Exception as e:
+                print(f"Playwright failed: {e}, trying alternatives...")
+        
+        # Try Selenium as fallback if Playwright failed or not available
+        if not html and self.use_interactive and SELENIUM_AVAILABLE:
+            try:
+                print("Using Selenium to download webpage with dynamic content...")
+                html = self._fetch_with_selenium(url)
+            except Exception as e:
+                print(f"Selenium failed: {e}, trying requests...")
+        
+        # Fallback to requests if browser automation failed
+        if not html:
+            print("Using requests to download webpage...")
             html = self.fetch_page(url)
         
         if not html:
@@ -2807,18 +2824,6 @@ class GrowwScraper:
             f.write(html)
         
         print(f"Saved HTML: {html_filepath}")
-        
-        # Clean up browser resources
-        if browser:
-            try:
-                browser.close()
-            except:
-                pass
-        if playwright_context:
-            try:
-                playwright_context.stop()
-            except:
-                pass
         
         return html_filepath
     

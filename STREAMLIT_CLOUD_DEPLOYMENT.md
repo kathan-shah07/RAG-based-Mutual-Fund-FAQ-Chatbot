@@ -11,15 +11,25 @@
 - **File**: `scrapers/groww_scraper.py`
 - **Changes**:
   - Enabled Playwright (works better on cloud environments)
-  - Updated fetch logic to try Playwright first, then Selenium, then requests
+  - Updated `download_html()` to prioritize Playwright first, then Selenium, then requests
+  - Updated `fetch_page()` to try Playwright first
   - Improved Selenium configuration for Streamlit Cloud compatibility
   - Added proper Chrome binary path detection
+  - Better error handling and fallback logic
 
-### 3. Added System Dependencies
+### 3. Fixed Import Error
+- **File**: `vector_store/__init__.py`
+- **Changes**: Added proper exports for `ChromaVectorStore` class
+- Fixes `KeyError: 'vector_store.chroma_store'` import error
+
+### 4. Fixed System Dependencies
 - **File**: `packages.txt`
-- **Purpose**: Installs Chrome/Chromium and required system libraries for browser automation on Streamlit Cloud
+- **Changes**: 
+  - Removed all comments (comments were causing apt-get parsing errors)
+  - Simplified package list to only essential packages
+  - Changed to `chromium` and `chromium-driver` (more reliable on Debian)
 
-### 4. Updated Requirements
+### 5. Updated Requirements
 - **File**: `requirements.txt`
 - **Added**: `chromedriver-autoinstaller>=0.6.2` for automatic ChromeDriver setup
 
