@@ -1,5 +1,5 @@
 [theme]
-primaryColor = "#6366f1"
+primaryColor = "#667eea"
 backgroundColor = "#ffffff"
 secondaryBackgroundColor = "#f0f2f6"
 textColor = "#262730"
@@ -13,4 +13,4 @@ enableXsrfProtection = true
 
 [browser]
 gatherUsageStats = false
-
+serverAddress = "localhost"
