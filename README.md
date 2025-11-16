@@ -55,57 +55,61 @@ curl -X POST "http://localhost:8000/api/v1/ingest" \
 
 ## Deployment
 
-### Railway Deployment
+### Vercel Deployment
 
-This application is fully configured for deployment on Railway with automatic deployments from GitHub.
+This application is configured for deployment on Vercel as serverless functions.
 
 **📚 Deployment Documentation:**
-- **[Quick Start Guide](RAILWAY_DEPLOYMENT_GUIDE.md)** - Get deployed in 5 minutes
-- **[Complete Deployment Plan](RAILWAY_DEPLOYMENT_PLAN.md)** - Detailed step-by-step guide
-- **[Deployment Checklist](DEPLOYMENT_CHECKLIST.md)** - Pre-flight checklist
+- **[Quick Start Guide](VERCEL_DEPLOYMENT_GUIDE.md)** - Get deployed in 5 minutes
+- **[Complete Deployment Plan](VERCEL_DEPLOYMENT_PLAN.md)** - Detailed step-by-step guide
 
 #### Quick Start
 
-1. **Connect Repository to Railway**
-   - Go to [railway.app](https://railway.app) and sign in with GitHub
-   - Click "New Project" → "Deploy from GitHub repo"
-   - Select your repository
+1. **Connect Repository to Vercel**
+   - Go to [vercel.com](https://vercel.com) and sign in with GitHub
+   - Click "Add New" → "Project"
+   - Import your repository
 
 2. **Set Environment Variables**
-   - Go to Service → Variables
+   - Go to Settings → Environment Variables
    - Add `GEMINI_API_KEY` (mark as secret)
    - Optional: Set other variables (defaults work fine)
 
-3. **Add Persistent Storage** (CRITICAL)
-   - Go to Service → Volumes
-   - Add volume with mount path: `/app/chroma_db`
-   - Size: 100MB (can increase later)
+3. **Deploy**
+   - Vercel will auto-detect Python and start building
+   - Wait ~2-5 minutes for first build
+   - Get your URL: `your-project.vercel.app`
 
-4. **Deploy**
-   - Railway will auto-detect Dockerfile and start building
-   - Wait ~5-10 minutes for first build
-   - Get your URL: `your-service.up.railway.app`
+4. **Verify Deployment**
+   - Frontend: `https://your-project.vercel.app/`
+   - Health: `https://your-project.vercel.app/health`
+   - API Docs: `https://your-project.vercel.app/docs`
 
-5. **Ingest Data**
-   ```bash
-   curl -X POST "https://your-service.up.railway.app/api/v1/ingest" \
-     -H "Content-Type: application/json" \
-     -d '{"upsert": true}'
-   ```
+**For detailed instructions, see [VERCEL_DEPLOYMENT_GUIDE.md](VERCEL_DEPLOYMENT_GUIDE.md)**
 
-**For detailed instructions, see [RAILWAY_DEPLOYMENT_GUIDE.md](RAILWAY_DEPLOYMENT_GUIDE.md)**
+#### ⚠️ Important Limitations
 
-#### Railway Free Tier Limits
+**Vercel Serverless Constraints:**
+- **No Persistent Storage**: ChromaDB data is ephemeral (use `/tmp` or external database)
+- **10-Second Timeout**: Free tier functions timeout after 10 seconds
+- **Cold Starts**: First request after inactivity: 5-10 seconds
+- **No Background Tasks**: Scheduled scraper cannot run
+- **Commercial Use**: Free tier restricted to personal/hobby projects
 
-- **RAM**: 512MB
-- **Storage**: 1GB (including volumes)
-- **Bandwidth**: 100GB/month
-- **Deployments**: Unlimited
+**Recommendations:**
+- Use external database (Supabase, MongoDB Atlas) for production
+- Disable scheduled scraper or use external cron service
+- Consider Vercel Pro ($20/month) for 60-second timeout and commercial use
+- Optimize queries to stay under 10-second limit
 
-**Recommendations for Free Tier:**
-- Disable scheduled scraper or use longer intervals (24+ hours)
-- Monitor resource usage in Railway dashboard
-- Consider optimizing chunk sizes if needed
+#### Vercel Free Tier Limits
+
+- **Bandwidth**: 100 GB/month
+- **Build Minutes**: 6,000/month
+- **Function Invocations**: 100 GB-hours/month
+- **Function Timeout**: 10 seconds
+- **Function Memory**: 1GB
+- **Commercial Use**: ❌ Restricted (personal/hobby only)
 
 ## API Endpoints
 
@@ -155,6 +159,8 @@ See `/docs` endpoint for interactive API documentation.
 ```
 MF-Chatbot/
 ├── api/                    # FastAPI application
+│   ├── index.py           # Vercel serverless handler
+│   └── main.py            # FastAPI app
 ├── ingestion/              # Document processing
 ├── vector_store/           # ChromaDB integration
 ├── retrieval/              # RAG implementation
@@ -163,8 +169,8 @@ MF-Chatbot/
 ├── static/                 # Frontend files
 ├── data/                   # Source data
 ├── chroma_db/              # Vector database (local)
-├── Dockerfile              # Container definition
-├── railway.json            # Railway configuration
+├── vercel.json             # Vercel configuration
+├── Dockerfile              # Optional (for other platforms)
 └── requirements.txt        # Python dependencies
 ```
 
