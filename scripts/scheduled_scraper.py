@@ -595,6 +595,45 @@ class ScheduledScraper:
                 # Wait a bit before retrying
                 time.sleep(300)  # 5 minutes
     
+    def check_if_data_exists(self) -> bool:
+        """
+        Check if vector DB or scraper data already exists.
+        
+        Returns:
+            True if data exists, False otherwise
+        """
+        # Check vector DB for existing documents
+        try:
+            vector_store = ChromaVectorStore(
+                collection_name=config.COLLECTION_NAME,
+                db_path=config.CHROMA_DB_PATH
+            )
+            collection_info = vector_store.get_collection_info()
+            document_count = collection_info.get("document_count", 0)
+            
+            if document_count > 0:
+                logger.info(f"Found {document_count} document(s) in vector database")
+                return True
+        except Exception as e:
+            logger.warning(f"Could not check vector database: {e}")
+        
+        # Check scraper data directory for existing files
+        try:
+            from pathlib import Path
+            scraper_settings = self.config.get("scraper_settings", {})
+            data_dir = Path(scraper_settings.get("output_dir", "data/mutual_funds"))
+            
+            if data_dir.exists():
+                json_files = list(data_dir.rglob("*.json"))
+                if len(json_files) > 0:
+                    logger.info(f"Found {len(json_files)} JSON file(s) in scraper data directory")
+                    return True
+        except Exception as e:
+            logger.warning(f"Could not check scraper data directory: {e}")
+        
+        logger.info("No existing data found - will run initial scraping and ingestion")
+        return False
+    
     def start(self):
         """Start the scheduled scraper service."""
         if self.running:
@@ -606,6 +645,25 @@ class ScheduledScraper:
             logger.info("Scheduling is disabled in config")
             return
         
+        # Check if data exists before starting scheduler
+        data_exists = self.check_if_data_exists()
+        
+        if not data_exists:
+            # No data found - run pipeline immediately in main thread
+            # This allows Playwright to work properly (Playwright needs main thread)
+            logger.info("=" * 70)
+            logger.info("No existing data found - running initial scraping and ingestion")
+            logger.info("=" * 70)
+            
+            try:
+                # Run synchronously in main thread so Playwright can work
+                result = self.run_full_pipeline(force=True, check_new_urls=False)
+                logger.info(f"Initial pipeline completed: {result.get('scraping', {}).get('status', 'unknown')}")
+            except Exception as e:
+                logger.error(f"Initial pipeline failed: {e}", exc_info=True)
+                # Scheduler will retry on next interval if needed
+        
+        # Start the scheduler loop
         self.running = True
         self.thread = threading.Thread(target=self.scheduler_loop, daemon=True)
         self.thread.start()

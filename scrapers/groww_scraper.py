@@ -6,6 +6,7 @@ Extracts structured data from Groww mutual fund pages and saves to JSON.
 import json
 import re
 import os
+import threading
 from datetime import datetime
 from typing import Dict, List, Optional, Any
 from urllib.parse import urlparse
@@ -13,11 +14,26 @@ from urllib.parse import urlparse
 import requests
 from bs4 import BeautifulSoup
 
-try:
-    from playwright.sync_api import sync_playwright
-    PLAYWRIGHT_AVAILABLE = True
-except ImportError:
-    PLAYWRIGHT_AVAILABLE = False
+# Playwright commented out - using Selenium by default
+# try:
+#     from playwright.sync_api import sync_playwright
+#     PLAYWRIGHT_AVAILABLE = True
+# except ImportError:
+#     PLAYWRIGHT_AVAILABLE = False
+PLAYWRIGHT_AVAILABLE = False
+
+# Try async Playwright as fallback for Python 3.13 compatibility
+# try:
+#     from playwright.async_api import async_playwright
+#     import asyncio
+#     ASYNC_PLAYWRIGHT_AVAILABLE = True
+# except ImportError:
+#     ASYNC_PLAYWRIGHT_AVAILABLE = False
+ASYNC_PLAYWRIGHT_AVAILABLE = False
+
+def _is_main_thread():
+    """Check if we're running in the main thread."""
+    return threading.current_thread() is threading.main_thread()
 
 try:
     from selenium import webdriver
@@ -63,7 +79,8 @@ class GrowwScraper:
     
     def fetch_page(self, url: str) -> Optional[str]:
         """
-        Fetch webpage content using requests first, fallback to Playwright/Selenium if needed.
+        Fetch webpage content using requests first, fallback to Selenium if needed.
+        Selenium is used by default for dynamic content.
         
         Args:
             url: URL to fetch
@@ -79,30 +96,18 @@ class GrowwScraper:
             
             # Check if page is blocked or dynamic content is missing
             if self._is_blocked_or_empty(html):
-                print(f"Page appears blocked or empty, trying Playwright...")
-                playwright_result = self._fetch_with_playwright(url, interactive=False)
-                if playwright_result:
-                    html, _, browser, p_context = playwright_result
-                    try:
-                        browser.close()
-                        p_context.stop()
-                    except:
-                        pass
-                    return html
+                print(f"Page appears blocked or empty, trying Selenium...")
+                selenium_html = self._fetch_with_selenium(url)
+                if selenium_html:
+                    return selenium_html
                 return None
             
             return html
         except requests.RequestException as e:
-            print(f"Request failed: {e}, trying Playwright...")
-            playwright_result = self._fetch_with_playwright(url, interactive=False)
-            if playwright_result:
-                html, _, browser, p_context = playwright_result
-                try:
-                    browser.close()
-                    p_context.stop()
-                except:
-                    pass
-                return html
+            print(f"Request failed: {e}, trying Selenium...")
+            selenium_html = self._fetch_with_selenium(url)
+            if selenium_html:
+                return selenium_html
             return None
     
     def _is_blocked_or_empty(self, html: str) -> bool:
@@ -123,82 +128,29 @@ class GrowwScraper:
         
         return False
     
+    # Playwright methods commented out - using Selenium by default
     def _fetch_with_playwright(self, url: str, interactive: bool = True) -> Optional[tuple]:
         """
-        Fetch page using Playwright with interactive element discovery.
-        
-        Returns:
-            Tuple of (html_content, page_object, browser_object, playwright_context) or None if failed
+        Playwright method commented out - using Selenium instead.
+        This method is kept for future reference but always returns None.
         """
-        if not PLAYWRIGHT_AVAILABLE:
-            print("Playwright not available, trying Selenium...")
-            return None
-        
-        try:
-            p = sync_playwright().start()
-            browser = p.chromium.launch(headless=True)
-            page = browser.new_page()
-            page.goto(url, wait_until='domcontentloaded', timeout=60000)
-            
-            # Wait for page to load
-            page.wait_for_timeout(5000)
-            
-            if interactive:
-                # Try to click buttons/links that might reveal more data
-                try:
-                    # Look for "View All", "Show More", "See Details" buttons using multiple methods
-                    button_texts = ["View All", "Show More", "See Details", "View More", "Expand", "Load More"]
-                    for btn_text in button_texts:
-                        try:
-                            buttons = page.locator(f'button:has-text("{btn_text}"), a:has-text("{btn_text}")')
-                            count = buttons.count()
-                            for i in range(min(count, 2)):  # Click up to 2 buttons per type
-                                try:
-                                    buttons.nth(i).click(timeout=2000)
-                                    page.wait_for_timeout(1500)
-                                except:
-                                    pass
-                        except:
-                            pass
-                except Exception as e:
-                    print(f"Error clicking buttons: {e}")
-                
-                # Try to scroll to load lazy content
-                try:
-                    # Scroll down gradually
-                    for i in range(3):
-                        page.evaluate(f"window.scrollTo(0, {i * 1000})")
-                        page.wait_for_timeout(1000)
-                    # Scroll to bottom
-                    page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
-                    page.wait_for_timeout(2000)
-                    # Scroll back to top
-                    page.evaluate("window.scrollTo(0, 0)")
-                    page.wait_for_timeout(1000)
-                except:
-                    pass
-                
-                # Try to find and click tabs that might contain more data
-                try:
-                    tabs = page.locator('[role="tab"], .tab, [class*="tab"]')
-                    count = tabs.count()
-                    for i in range(min(count, 5)):  # Try up to 5 tabs
-                        try:
-                            tabs.nth(i).click(timeout=2000)
-                            page.wait_for_timeout(2000)
-                        except:
-                            pass
-                except:
-                    pass
-            
-            html = page.content()
-            return (html, page, browser, p)
-        except Exception as e:
-            print(f"Playwright failed: {e}")
-            return None
+        # Playwright disabled - using Selenium by default
+        return None
+    
+    # Async Playwright method commented out - using Selenium instead
+    def _fetch_with_async_playwright(self, url: str, interactive: bool = True) -> Optional[tuple]:
+        """
+        Async Playwright method commented out - using Selenium instead.
+        This method is kept for future reference but always returns None.
+        """
+        # Playwright disabled - using Selenium by default
+        return None
     
     def _fetch_with_selenium(self, url: str) -> Optional[str]:
-        """Fetch page using Selenium (last resort)."""
+        """
+        Fetch page using Selenium with dynamic content loading.
+        Enhanced to handle lazy-loaded content similar to Playwright.
+        """
         if not SELENIUM_AVAILABLE:
             print("Selenium not available. Please install it or use Playwright.")
             return None
@@ -219,6 +171,62 @@ class GrowwScraper:
             WebDriverWait(driver, 20).until(
                 EC.presence_of_element_located((By.TAG_NAME, "body"))
             )
+            
+            # Wait for initial content
+            import time
+            time.sleep(3)
+            
+            # Scroll to bottom to load lazy content
+            driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+            time.sleep(2)
+            
+            # Scroll back to top
+            driver.execute_script("window.scrollTo(0, 0);")
+            time.sleep(1)
+            
+            # Scroll gradually to trigger lazy loading
+            scroll_steps = 5
+            for i in range(scroll_steps):
+                scroll_position = (i + 1) / scroll_steps
+                driver.execute_script(f"window.scrollTo(0, document.body.scrollHeight * {scroll_position});")
+                time.sleep(1)
+            
+            # Scroll to bottom again
+            driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+            time.sleep(2)
+            
+            # Try to click "Load More" or "View All" buttons
+            try:
+                button_selectors = [
+                    "//button[contains(text(), 'Load More')]",
+                    "//button[contains(text(), 'View All')]",
+                    "//button[contains(text(), 'Show More')]",
+                    "//a[contains(text(), 'View All')]",
+                    "//a[contains(text(), 'Load More')]"
+                ]
+                for selector in button_selectors[:3]:  # Try first 3
+                    try:
+                        buttons = driver.find_elements(By.XPATH, selector)
+                        for btn in buttons[:2]:  # Click first 2
+                            try:
+                                driver.execute_script("arguments[0].scrollIntoView(true);", btn)
+                                time.sleep(0.5)
+                                btn.click()
+                                time.sleep(2)
+                            except:
+                                pass
+                    except:
+                        pass
+            except Exception as e:
+                print(f"Warning: Error clicking buttons: {e}")
+            
+            # Final scroll to ensure all content is loaded
+            driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+            time.sleep(2)
+            
+            # Scroll to top for final HTML capture
+            driver.execute_script("window.scrollTo(0, 0);")
+            time.sleep(1)
             
             html = driver.page_source
             driver.quit()
@@ -2683,48 +2691,13 @@ class GrowwScraper:
         browser = None
         playwright_context = None
         
-        if self.use_interactive and PLAYWRIGHT_AVAILABLE:
-            playwright_result = self._fetch_with_playwright(url, interactive=True)
-            if playwright_result:
-                html, page_obj, browser, playwright_context = playwright_result
-                
-                # Ensure Fund Objective section is loaded by scrolling
-                try:
-                    if page_obj:
-                        # Scroll through page to load all content
-                        page_obj.evaluate("window.scrollTo(0, 0)")
-                        page_obj.wait_for_timeout(500)
-                        
-                        # Scroll down gradually
-                        scroll_steps = 6
-                        for i in range(scroll_steps):
-                            scroll_position = (i + 1) * (1.0 / scroll_steps)
-                            page_obj.evaluate(f"window.scrollTo(0, document.body.scrollHeight * {scroll_position})")
-                            page_obj.wait_for_timeout(1000)  # Wait for content to load
-                        
-                        # Specifically scroll to Fund Objective section
-                        page_obj.evaluate("""
-                            () => {
-                                const objectiveHeaders = Array.from(document.querySelectorAll('h2, h3, h4, h5, h6, div, section'));
-                                for (let el of objectiveHeaders) {
-                                    const text = (el.textContent || '').toLowerCase();
-                                    if (text.includes('fund objective') || text.includes('investment objective')) {
-                                        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                                        break;
-                                    }
-                                }
-                            }
-                        """)
-                        page_obj.wait_for_timeout(2000)  # Wait for Fund Objective to load
-                        
-                        # Get updated HTML after scrolling
-                        html = page_obj.content()
-                except Exception as e:
-                    print(f"Warning: Error scrolling to load Fund Objective: {e}")
-                    # Use original HTML if scrolling fails
-                    if not html:
-                        html = page_obj.content() if page_obj else None
+        # Use Selenium by default (Playwright commented out)
+        # Selenium handles dynamic content loading with scrolling and button clicking
+        if self.use_interactive and SELENIUM_AVAILABLE:
+            print("Using Selenium to download webpage with dynamic content...")
+            html = self._fetch_with_selenium(url)
         else:
+            # Fallback to requests if Selenium not available
             html = self.fetch_page(url)
         
         if not html:
@@ -2930,7 +2903,8 @@ class GrowwScraper:
     def scrape(self, url: str) -> Optional[str]:
         """
         Scrape a single fund page and save to JSON.
-        Supports download-first mode for better accuracy.
+        ALWAYS downloads/pre-computes the webpage first, then scrapes from downloaded file.
+        This ensures all dynamic content is loaded before extraction.
         
         Args:
             url: URL to scrape
@@ -2938,25 +2912,18 @@ class GrowwScraper:
         Returns:
             Path to saved JSON file, or None if failed
         """
-        if self.download_first:
-            # Download HTML first
-            html_filepath = self.download_html(url)
-            if not html_filepath:
-                return None
-            
-            # Then scrape from downloaded file
-            return self.scrape_from_file(html_filepath, url)
-        else:
-            # Direct scraping (original behavior)
-            data = self.parse_fund_data(url)
-            if not data:
-                return None
-            
-            parsed_url = urlparse(url)
-            path_parts = parsed_url.path.strip('/').split('/')
-            fund_slug = path_parts[-1] if path_parts else "unknown"
-            
-            return self.save_json(data, fund_slug)
+        # ALWAYS download/pre-compute the webpage first, then scrape from downloaded file
+        # This ensures all dynamic content is loaded before extraction
+        print(f"Step 1: Downloading/pre-computing webpage for {url}")
+        html_filepath = self.download_html(url)
+        
+        if not html_filepath:
+            print(f"Failed to download HTML from {url}. Cannot proceed with scraping.")
+            return None
+        
+        # Step 2: Scrape from downloaded HTML file
+        print(f"Step 2: Scraping from downloaded HTML file: {html_filepath}")
+        return self.scrape_from_file(html_filepath, url)
 
 
 def load_config(config_path: str = "scraper_config.json") -> Dict[str, Any]:

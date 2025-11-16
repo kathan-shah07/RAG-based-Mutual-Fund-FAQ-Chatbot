@@ -390,12 +390,42 @@ class ChromaVectorStore:
         """
         count = self.collection.count()
         latest_timestamp = self.get_latest_ingestion_timestamp()
+        unique_funds_count = self.count_unique_funds()
         return {
             "collection_name": self.collection_name,
             "document_count": count,
+            "unique_funds_count": unique_funds_count,
             "db_path": self.db_path,
             "latest_ingestion_timestamp": latest_timestamp
         }
+    
+    def count_unique_funds(self) -> int:
+        """
+        Count unique mutual funds in the vector database.
+        Uses fund_name from metadata to identify unique funds.
+        
+        Returns:
+            Number of unique mutual funds
+        """
+        try:
+            # Get all documents with metadata
+            all_docs = self.collection.get(include=["metadatas"])
+            
+            if not all_docs or not all_docs.get('metadatas'):
+                return 0
+            
+            # Extract unique fund names
+            unique_fund_names = set()
+            for metadata in all_docs['metadatas']:
+                fund_name = metadata.get('fund_name', '')
+                if fund_name:  # Only count non-empty fund names
+                    unique_fund_names.add(fund_name)
+            
+            return len(unique_fund_names)
+            
+        except Exception as e:
+            print(f"[WARN] Could not count unique funds: {e}")
+            return 0
     
     def get_latest_ingestion_timestamp(self) -> Optional[datetime]:
         """
