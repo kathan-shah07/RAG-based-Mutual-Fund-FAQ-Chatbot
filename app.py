@@ -436,7 +436,7 @@ st.markdown("""
         opacity: 1 !important;
     }
     
-    /* Style Send button specifically - modern gradient button */
+    /* Style Send button specifically - modern gradient button with arrow */
     .stChatInput > div > div > div > button:last-child,
     .stChatInput button[kind="primary"],
     .stChatInput button[aria-label*="Send"],
@@ -460,6 +460,16 @@ st.markdown("""
         position: relative !important;
         z-index: 10 !important;
         box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4) !important;
+        font-size: 18px !important;
+        font-weight: bold !important;
+    }
+    
+    /* Arrow icon for send button */
+    .send-button-arrow {
+        display: inline-block !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        line-height: 1 !important;
     }
     
     .stChatInput > div > div > div > button:last-child:hover,
@@ -1392,29 +1402,61 @@ st.markdown("""
                         button.style.display = 'none';
                         button.style.visibility = 'hidden';
                     } else {
-                        // This is the Send button - make it visible and styled
+                        // This is the Send button - make it visible and styled with arrow icon
                         button.style.setProperty('display', 'flex', 'important');
                         button.style.setProperty('visibility', 'visible', 'important');
                         button.style.setProperty('opacity', '1', 'important');
-                        button.style.setProperty('background-color', '#3b82f6', 'important');
+                        button.style.setProperty('background', 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', 'important');
                         button.style.setProperty('color', 'white', 'important');
                         button.style.setProperty('border', 'none', 'important');
                         button.style.setProperty('border-radius', '50%', 'important');
-                        button.style.setProperty('width', '36px', 'important');
-                        button.style.setProperty('height', '36px', 'important');
-                        button.style.setProperty('min-width', '36px', 'important');
+                        button.style.setProperty('width', '42px', 'important');
+                        button.style.setProperty('height', '42px', 'important');
+                        button.style.setProperty('min-width', '42px', 'important');
                         button.style.setProperty('padding', '0', 'important');
                         button.style.setProperty('align-items', 'center', 'important');
                         button.style.setProperty('justify-content', 'center', 'important');
                         button.style.setProperty('cursor', 'pointer', 'important');
                         button.style.setProperty('z-index', '10', 'important');
+                        button.style.setProperty('font-size', '18px', 'important');
+                        button.style.setProperty('font-weight', 'bold', 'important');
+                        button.style.setProperty('box-shadow', '0 4px 12px rgba(102, 126, 234, 0.4)', 'important');
+                        
+                        // Add arrow icon if not already present
+                        if (!button.querySelector('.send-button-arrow') && !button.textContent.includes('→') && !button.textContent.includes('➜')) {
+                            const arrow = document.createElement('span');
+                            arrow.className = 'send-button-arrow';
+                            arrow.textContent = '→';
+                            arrow.style.display = 'inline-block';
+                            arrow.style.margin = '0';
+                            arrow.style.padding = '0';
+                            arrow.style.lineHeight = '1';
+                            // Clear any existing content and add arrow
+                            button.innerHTML = '';
+                            button.appendChild(arrow);
+                        } else if (button.textContent && !button.textContent.includes('→') && !button.textContent.includes('➜')) {
+                            // If button has text but no arrow, add arrow
+                            button.innerHTML = '→';
+                        }
                         
                         // Add hover effect
                         button.addEventListener('mouseenter', function() {
-                            this.style.setProperty('background-color', '#2563eb', 'important');
+                            this.style.setProperty('background', 'linear-gradient(135deg, #5568d3 0%, #6a3f8f 100%)', 'important');
+                            this.style.setProperty('transform', 'scale(1.05)', 'important');
+                            this.style.setProperty('box-shadow', '0 6px 20px rgba(102, 126, 234, 0.5)', 'important');
                         });
                         button.addEventListener('mouseleave', function() {
-                            this.style.setProperty('background-color', '#3b82f6', 'important');
+                            this.style.setProperty('background', 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', 'important');
+                            this.style.setProperty('transform', 'scale(1)', 'important');
+                            this.style.setProperty('box-shadow', '0 4px 12px rgba(102, 126, 234, 0.4)', 'important');
+                        });
+                        
+                        // Add active effect
+                        button.addEventListener('mousedown', function() {
+                            this.style.setProperty('transform', 'scale(0.95)', 'important');
+                        });
+                        button.addEventListener('mouseup', function() {
+                            this.style.setProperty('transform', 'scale(1.05)', 'important');
                         });
                     }
                 });
