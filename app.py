@@ -1,16 +1,11 @@
 """
 Streamlit app for Mutual Fund FAQ Assistant
-Complete frontend and backend integrated for Streamlit Cloud deployment
-Includes: Chat, Ingestion, and Scraper functionality
+Simplified frontend matching HTML/CSS/JS design exactly
 """
 import streamlit as st
 import os
 import sys
-import json
-import threading
-import time
 from datetime import datetime
-from pathlib import Path
 
 # Add parent directory to path for imports
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -19,176 +14,451 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from vector_store.chroma_store import ChromaVectorStore
 from retrieval.rag_chain import RAGChain
 from api.validation import contains_pii, validate_comparison
-from ingestion.document_loader import JSONDocumentLoader
-from ingestion.chunker import DocumentChunker
 from scripts.scheduled_scraper import ScheduledScraper
 from scrapers.groww_scraper import load_config
 import config
 
-# Page configuration
+# Page configuration - centered layout like HTML
 st.set_page_config(
     page_title="Mutual Fund FAQ Assistant",
     page_icon="💰",
-    layout="wide",
-    initial_sidebar_state="expanded"
+    layout="centered",
+    initial_sidebar_state="collapsed"
 )
 
-# Enhanced CSS adapted from static/styles.css
+# CSS matching static/styles.css exactly
 st.markdown("""
 <style>
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+    }
+    
     :root {
         --primary-color: #6366f1;
         --primary-dark: #4f46e5;
         --primary-light: #818cf8;
+        --primary-lighter: #c7d2fe;
         --secondary-color: #10b981;
         --accent-color: #f59e0b;
-        --error-color: #ef4444;
+        --background-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+        --card-background: #ffffff;
+        --text-primary: #111827;
+        --text-secondary: #4b5563;
+        --text-muted: #9ca3af;
+        --border-color: #e5e7eb;
+        --border-light: #f3f4f6;
+        --success-color: #10b981;
         --warning-color: #f59e0b;
+        --error-color: #ef4444;
         --info-color: #3b82f6;
+        --chat-bg: #f9fafb;
+        --user-msg-bg: linear-gradient(135deg, #6366f1 0%, #818cf8 100%);
+        --assistant-msg-bg: #ffffff;
+        --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+        --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+        --shadow-2xl: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
     }
     
-    .main-header {
+    .stApp {
+        background: linear-gradient(135deg, #f0f4ff 0%, #e0e7ff 50%, #ddd6fe 100%);
+        background-attachment: fixed;
+        min-height: 100vh;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding: 20px;
+    }
+    
+    .main .block-container {
+        background: var(--card-background);
+        border-radius: 24px;
+        box-shadow: var(--shadow-2xl);
+        max-width: 900px;
+        width: 100%;
+        padding: 40px;
+        display: flex;
+        flex-direction: column;
+        gap: 24px;
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+    
+    header {
         text-align: center;
-        padding: 2rem 0;
-        border-bottom: 2px solid #e5e7eb;
-        margin-bottom: 2rem;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+        border-bottom: 2px solid var(--border-light);
+        padding-bottom: 24px;
+        position: relative;
+        margin-bottom: 0;
+    }
+    
+    header::after {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 60px;
+        height: 3px;
+        background: linear-gradient(90deg, var(--primary-color), var(--primary-light));
+        border-radius: 2px;
+    }
+    
+    header h1 {
+        background: linear-gradient(135deg, var(--primary-color), var(--primary-light));
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
         background-clip: text;
+        font-size: 32px;
+        font-weight: 700;
+        margin: 0 0 16px 0;
+        letter-spacing: -0.5px;
+    }
+    
+    .welcome-message {
+        color: var(--text-secondary);
+        font-size: 16px;
+        margin-bottom: 8px;
+        font-weight: 400;
     }
     
     .disclaimer {
-        text-align: center;
-        color: #6b7280;
-        font-style: italic;
-        margin-top: 0.5rem;
-        font-size: 0.9rem;
-    }
-    
-    .user-message {
-        background: linear-gradient(135deg, #6366f1 0%, #818cf8 100%);
-        color: white;
-        padding: 1rem 1.5rem;
-        border-radius: 16px;
-        margin: 1rem 0;
-        text-align: right;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-        max-width: 80%;
-        margin-left: auto;
-    }
-    
-    .assistant-message {
-        background: #ffffff;
-        padding: 1rem 1.5rem;
-        border-radius: 16px;
-        margin: 1rem 0;
-        border-left: 4px solid #10b981;
-        box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
-        max-width: 80%;
-    }
-    
-    .source-info {
-        font-size: 0.85rem;
-        color: #6b7280;
-        margin-top: 0.75rem;
-        padding-top: 0.75rem;
-        border-top: 1px solid #e5e7eb;
-    }
-    
-    .source-info ul {
-        margin: 0.5rem 0 0 1.5rem;
-        padding: 0;
-    }
-    
-    .source-info li {
-        margin: 0.25rem 0;
-    }
-    
-    .error-message {
-        background-color: #fef2f2;
+        display: inline-block;
+        background: linear-gradient(135deg, #fee2e2, #fecaca);
         color: #991b1b;
-        padding: 1rem 1.5rem;
-        border-radius: 12px;
-        margin: 1rem 0;
-        border-left: 4px solid #ef4444;
-        box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+        font-weight: 600;
+        font-size: 13px;
+        padding: 6px 12px;
+        border-radius: 20px;
+        border: 1px solid #fca5a5;
+        margin-top: 8px;
     }
     
-    .warning-message {
-        background-color: #fffbeb;
-        color: #92400e;
-        padding: 1rem 1.5rem;
+    .example-questions {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+        padding: 20px;
+        border-radius: 16px;
+        border: 1px solid var(--border-light);
+    }
+    
+    .example-questions h2 {
+        color: var(--text-primary);
+        font-size: 18px;
+        font-weight: 600;
+        margin-bottom: 12px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    
+    .example-questions h2::before {
+        content: '💡';
+        font-size: 20px;
+    }
+    
+    .example-question {
+        background: white;
+        border: 2px solid var(--border-color);
         border-radius: 12px;
-        margin: 1rem 0;
-        border-left: 4px solid #f59e0b;
-        box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+        padding: 14px 18px;
+        cursor: pointer;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        color: var(--text-primary);
+        font-size: 14px;
+        font-weight: 500;
+        position: relative;
+        overflow: hidden;
+        box-shadow: var(--shadow-sm);
+    }
+    
+    .example-question::before {
+        content: '';
+        position: absolute;
+        left: 0;
+        top: 0;
+        height: 100%;
+        width: 4px;
+        background: linear-gradient(180deg, var(--primary-color), var(--primary-light));
+        transform: scaleY(0);
+        transition: transform 0.3s ease;
+    }
+    
+    .example-question:hover {
+        background: linear-gradient(135deg, #f8faff 0%, #f0f4ff 100%);
+        border-color: var(--primary-light);
+        transform: translateX(6px);
+        box-shadow: var(--shadow-md);
+    }
+    
+    .example-question:hover::before {
+        transform: scaleY(1);
+    }
+    
+    .chat-container {
+        min-height: 350px;
+        max-height: 600px;
+        overflow-y: auto;
+        border: 1px solid var(--border-light);
+        border-radius: 20px;
+        padding: 24px;
+        background: var(--chat-bg);
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        position: relative;
+        backdrop-filter: blur(10px);
+    }
+    
+    .chat-messages {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+    }
+    
+    .message {
+        padding: 16px 20px;
+        border-radius: 16px;
+        max-width: 85%;
+        word-wrap: break-word;
+        animation: messageSlideIn 0.3s ease-out;
+        position: relative;
+        box-shadow: var(--shadow-sm);
+    }
+    
+    @keyframes messageSlideIn {
+        from {
+            opacity: 0;
+            transform: translateY(10px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    
+    .message.user {
+        background: var(--user-msg-bg);
+        color: white;
+        align-self: flex-end;
+        margin-left: auto;
+        border-bottom-right-radius: 8px;
+        box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
+        font-weight: 500;
+    }
+    
+    .message.assistant {
+        background: var(--assistant-msg-bg);
+        color: var(--text-primary);
+        align-self: flex-start;
+        border: 1px solid var(--border-light);
+        border-bottom-left-radius: 8px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        font-size: 15px;
+        line-height: 1.75;
+        letter-spacing: -0.01em;
+        border-left: 3px solid var(--primary-color);
+    }
+    
+    .message.refusal {
+        background: linear-gradient(135deg, #fef3c7, #fde68a);
+        border: 2px solid #fbbf24;
+        color: #92400e;
+        box-shadow: var(--shadow-sm);
+    }
+    
+    .message.error {
+        background: linear-gradient(135deg, #fee2e2, #fecaca);
+        border: 2px solid #f87171;
+        color: #991b1b;
+        box-shadow: var(--shadow-sm);
+    }
+    
+    .message.loading {
+        background: linear-gradient(135deg, #f3f4f6, #e5e7eb);
+        color: var(--text-secondary);
+        font-style: italic;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .citations {
+        margin-top: 12px;
+        padding-top: 12px;
+        border-top: 1px solid var(--border-light);
+    }
+    
+    .citation a {
+        color: var(--primary-color);
+        text-decoration: none;
+        font-weight: 600;
+        font-size: 13px;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 12px;
+        background: linear-gradient(135deg, #f0f4ff, #e0e7ff);
+        border-radius: 8px;
+        border: 1px solid var(--primary-light);
+        transition: all 0.3s ease;
+    }
+    
+    .citation a::before {
+        content: '🔗';
+        font-size: 12px;
+    }
+    
+    .citation a:hover {
+        background: linear-gradient(135deg, var(--primary-color), var(--primary-light));
+        color: white;
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-md);
+        border-color: var(--primary-color);
+    }
+    
+    .input-container {
+        display: flex;
+        gap: 12px;
+        border-top: 2px solid var(--border-light);
+        padding-top: 24px;
+        position: relative;
+    }
+    
+    .input-container::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 60px;
+        height: 2px;
+        background: linear-gradient(90deg, var(--primary-color), var(--primary-light));
+        border-radius: 2px;
+    }
+    
+    /* Scraper Status Indicator */
+    .scraper-status {
+        margin-top: 15px;
+        padding: 12px 16px;
+        background: linear-gradient(135deg, #f0f4ff 0%, #e0e7ff 100%);
+        border: 1px solid var(--primary-lighter);
+        border-radius: 12px;
+        box-shadow: var(--shadow-sm);
+        animation: slideDown 0.3s ease-out;
+    }
+    
+    @keyframes slideDown {
+        from {
+            opacity: 0;
+            transform: translateY(-10px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
     }
     
     .status-indicator {
         display: flex;
         align-items: center;
-        gap: 0.75rem;
-        padding: 0.75rem 1rem;
-        background: #f0f9ff;
-        border-radius: 8px;
-        margin: 0.5rem 0;
-        border-left: 3px solid #3b82f6;
+        gap: 12px;
     }
     
     .status-spinner {
-        width: 16px;
-        height: 16px;
-        border: 2px solid #e5e7eb;
-        border-top-color: #3b82f6;
+        width: 20px;
+        height: 20px;
+        border: 3px solid var(--primary-lighter);
+        border-top-color: var(--primary-color);
         border-radius: 50%;
         animation: spin 1s linear infinite;
     }
     
+    .status-spinner.scraping {
+        border-top-color: var(--info-color);
+    }
+    
+    .status-spinner.ingesting {
+        border-top-color: var(--secondary-color);
+    }
+    
     @keyframes spin {
-        to { transform: rotate(360deg); }
+        to {
+            transform: rotate(360deg);
+        }
     }
     
-    .progress-bar-container {
-        margin-top: 0.5rem;
-        background: #e5e7eb;
-        border-radius: 4px;
-        height: 8px;
-        overflow: hidden;
+    .status-message {
+        font-size: 14px;
+        font-weight: 500;
+        color: var(--text-primary);
+        flex: 1;
     }
     
-    .progress-bar-fill {
-        background: linear-gradient(90deg, #6366f1, #818cf8);
-        height: 100%;
-        transition: width 0.3s ease;
-        border-radius: 4px;
+    .status-progress {
+        margin-top: 10px;
     }
     
-    .example-question-btn {
-        background: #f9fafb;
-        border: 1px solid #e5e7eb;
-        border-radius: 8px;
-        padding: 0.75rem;
-        margin: 0.25rem 0;
-        cursor: pointer;
-        transition: all 0.2s;
-        text-align: left;
+    .progress-bar {
         width: 100%;
+        height: 6px;
+        background-color: var(--border-light);
+        border-radius: 3px;
+        overflow: hidden;
+        margin-bottom: 6px;
     }
     
-    .example-question-btn:hover {
-        background: #f3f4f6;
-        border-color: #6366f1;
-        transform: translateX(4px);
+    .progress-fill {
+        height: 100%;
+        background: linear-gradient(90deg, var(--primary-color), var(--primary-light));
+        border-radius: 3px;
+        transition: width 0.3s ease;
+        animation: pulse 2s ease-in-out infinite;
     }
     
-    .stTabs [data-baseweb="tab-list"] {
-        gap: 8px;
+    @keyframes pulse {
+        0%, 100% {
+            opacity: 1;
+        }
+        50% {
+            opacity: 0.8;
+        }
     }
     
-    .stTabs [data-baseweb="tab"] {
-        border-radius: 8px 8px 0 0;
-        padding: 0.75rem 1.5rem;
+    .progress-text {
+        font-size: 12px;
+        color: var(--text-secondary);
+        text-align: center;
+    }
+    
+    /* Hide Streamlit default elements */
+    #MainMenu {visibility: hidden;}
+    footer {visibility: hidden;}
+    header {visibility: hidden;}
+    .stDeployButton {display: none;}
+    
+    /* Scrollbar styling */
+    .chat-container::-webkit-scrollbar {
+        width: 10px;
+    }
+    
+    .chat-container::-webkit-scrollbar-track {
+        background: var(--border-light);
+        border-radius: 10px;
+        margin: 8px 0;
+    }
+    
+    .chat-container::-webkit-scrollbar-thumb {
+        background: linear-gradient(180deg, var(--primary-color), var(--primary-light));
+        border-radius: 10px;
+        border: 2px solid var(--border-light);
+    }
+    
+    .chat-container::-webkit-scrollbar-thumb:hover {
+        background: linear-gradient(180deg, var(--primary-dark), var(--primary-color));
     }
 </style>
 """, unsafe_allow_html=True)
@@ -206,16 +476,8 @@ if "init_error" not in st.session_state:
     st.session_state.init_error = None
 if "scraper" not in st.session_state:
     st.session_state.scraper = None
-if "scraper_status" not in st.session_state:
-    st.session_state.scraper_status = {
-        "is_running": False,
-        "current_operation": None,
-        "progress": None,
-        "message": "Idle",
-        "urls_processed": [],
-        "urls_total": 0,
-        "error": None
-    }
+if "scraper_started" not in st.session_state:
+    st.session_state.scraper_started = False
 
 @st.cache_resource
 def initialize_backend():
@@ -259,568 +521,226 @@ if not st.session_state.initialized:
             st.session_state.scraper = scraper
             st.session_state.initialized = True
 
-# Header
-st.markdown('<div class="main-header"><h1>💰 Mutual Fund FAQ Assistant</h1></div>', unsafe_allow_html=True)
-st.markdown('<p class="disclaimer">Welcome! I\'m here to help you with factual information about mutual funds. Facts-only. No investment advice.</p>', unsafe_allow_html=True)
+# Start scheduled scraper in background if not already started
+if st.session_state.scraper and not st.session_state.scraper_started:
+    try:
+        # Start the scraper scheduler in a background thread
+        st.session_state.scraper.start()
+        st.session_state.scraper_started = True
+    except Exception as e:
+        # Scraper start failure is not critical, continue
+        pass
 
-# Sidebar
-with st.sidebar:
-    st.header("ℹ️ Information")
+# Header
+st.markdown("""
+<header>
+    <h1>Mutual Fund FAQ Assistant</h1>
+    <p class="welcome-message">Welcome! I'm here to help you with factual information about mutual funds.</p>
+    <p class="disclaimer">Facts-only. No investment advice.</p>
+</header>
+""", unsafe_allow_html=True)
+
+# Scraper status indicator (matching HTML design)
+if st.session_state.scraper:
+    try:
+        scraper_status = st.session_state.scraper.get_status()
+        if scraper_status.get("is_running"):
+            status_html = '<div class="scraper-status">'
+            status_html += '<div class="status-indicator">'
+            
+            # Spinner based on operation
+            spinner_class = "status-spinner"
+            if scraper_status.get("current_operation") == "scraping":
+                spinner_class += " scraping"
+            elif scraper_status.get("current_operation") == "ingestion":
+                spinner_class += " ingesting"
+            
+            status_html += f'<span class="{spinner_class}"></span>'
+            status_html += f'<span class="status-message">{scraper_status.get("message", "Processing...")}</span>'
+            status_html += '</div>'
+            
+            # Progress bar if URLs are being processed
+            if scraper_status.get("urls_total", 0) > 0:
+                processed = len(scraper_status.get("urls_processed", []))
+                total = scraper_status.get("urls_total", 0)
+                percentage = int((processed / total) * 100) if total > 0 else 0
+                
+                status_html += '<div class="status-progress">'
+                status_html += '<div class="progress-bar">'
+                status_html += f'<div class="progress-fill" style="width: {percentage}%;"></div>'
+                status_html += '</div>'
+                status_html += f'<div class="progress-text">{processed}/{total} URLs processed</div>'
+                status_html += '</div>'
+            
+            status_html += '</div>'
+            st.markdown(status_html, unsafe_allow_html=True)
+    except Exception:
+        pass
+
+# Example Questions
+st.markdown("""
+<div class="example-questions">
+    <h2>Example Questions:</h2>
+""", unsafe_allow_html=True)
+
+example_questions = [
+    "What is the expense ratio of Nippon India Large Cap Fund?",
+    "What is the lock-in period for ELSS funds?",
+    "What is the minimum SIP amount?"
+]
+
+# Style buttons to match HTML design
+st.markdown("""
+<style>
+    .stButton > button {
+        background: white;
+        border: 2px solid var(--border-color);
+        border-radius: 12px;
+        padding: 14px 18px;
+        color: var(--text-primary);
+        font-size: 14px;
+        font-weight: 500;
+        width: 100%;
+        text-align: left;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: var(--shadow-sm);
+        position: relative;
+        overflow: hidden;
+    }
     
-    # Status
-    if st.session_state.init_error:
-        st.error(f"❌ {st.session_state.init_error}")
-        st.info("💡 Go to Settings → Secrets and add GEMINI_API_KEY")
-    elif st.session_state.initialized:
-        st.success("✅ Backend Initialized")
-        
-        # Show collection info
-        try:
-            collection_info = st.session_state.vector_store.get_collection_info()
-            st.info(f"📊 Documents in database: {collection_info.get('document_count', 0)}")
-        except:
-            pass
-        
-        # Show scraper status if available
-        if st.session_state.scraper:
-            try:
-                scraper_status = st.session_state.scraper.get_status()
-                if scraper_status.get("is_running"):
-                    st.warning(f"🔄 {scraper_status.get('message', 'Running...')}")
-                    if scraper_status.get("urls_total", 0) > 0:
-                        processed = len(scraper_status.get("urls_processed", []))
-                        total = scraper_status.get("urls_total", 0)
-                        st.progress(processed / total if total > 0 else 0)
-                        st.caption(f"{processed}/{total} URLs processed")
-            except Exception:
-                pass
-    else:
-        st.warning("⏳ Initializing...")
+    .stButton > button::before {
+        content: '';
+        position: absolute;
+        left: 0;
+        top: 0;
+        height: 100%;
+        width: 4px;
+        background: linear-gradient(180deg, var(--primary-color), var(--primary-light));
+        transform: scaleY(0);
+        transition: transform 0.3s ease;
+    }
     
-    st.markdown("---")
+    .stButton > button:hover {
+        background: linear-gradient(135deg, #f8faff 0%, #f0f4ff 100%);
+        border-color: var(--primary-light);
+        transform: translateX(6px);
+        box-shadow: var(--shadow-md);
+    }
     
-    # Example Questions
-    st.header("💡 Example Questions")
-    example_questions = [
-        "What is the expense ratio of Nippon India Large Cap Fund?",
-        "What is the lock-in period for ELSS funds?",
-        "What is the minimum SIP amount?",
-        "What are the returns of Nippon India Flexi Cap Fund?",
-        "What is the AUM of Nippon India Growth Mid Cap Fund?"
-    ]
-    
-    for question in example_questions:
-        if st.button(question, key=f"example_{hash(question)}", use_container_width=True):
-            st.session_state.user_question = question
-    
-    st.markdown("---")
-    
-    # Clear chat
-    if st.button("🗑️ Clear Chat History", use_container_width=True):
-        if st.session_state.rag_chain:
-            st.session_state.rag_chain.clear_memory()
-        st.session_state.messages = []
+    .stButton > button:hover::before {
+        transform: scaleY(1);
+    }
+</style>
+""", unsafe_allow_html=True)
+
+for question in example_questions:
+    if st.button(question, key=f"example_{hash(question)}", use_container_width=True):
+        st.session_state.user_question = question
+        st.rerun()
+
+st.markdown("</div>", unsafe_allow_html=True)
+
+# Chat container
+st.markdown('<div class="chat-container"><div class="chat-messages" id="chat-messages">', unsafe_allow_html=True)
+
+# Display chat history
+for message in st.session_state.messages:
+    if message["role"] == "user":
+        st.markdown(f'<div class="message user"><strong>You:</strong> {message["content"]}</div>', unsafe_allow_html=True)
+    elif message["role"] == "assistant":
+        answer_html = f'<div class="message assistant"><strong>Assistant:</strong> {message["content"]}'
+        if "sources" in message and message["sources"]:
+            sources_html = '<div class="citations">'
+            for source in message["sources"][:1]:  # Show first source only
+                source_url = source.get("metadata", {}).get("source_url", "")
+                if source_url:
+                    sources_html += f'<div class="citation"><a href="{source_url}" target="_blank" rel="noopener noreferrer">Source: {source_url}</a></div>'
+            sources_html += '</div>'
+            answer_html += sources_html
+        answer_html += "</div>"
+        st.markdown(answer_html, unsafe_allow_html=True)
+    elif message["role"] == "error":
+        st.markdown(f'<div class="message error"><strong>Error:</strong> {message["content"]}</div>', unsafe_allow_html=True)
+    elif message["role"] == "refusal":
+        st.markdown(f'<div class="message refusal"><strong>Warning:</strong> {message["content"]}</div>', unsafe_allow_html=True)
+
+st.markdown('</div></div>', unsafe_allow_html=True)
+
+# Chat input
+if "user_question" in st.session_state:
+    user_input = st.session_state.user_question
+    del st.session_state.user_question
+else:
+    user_input = st.chat_input("💬 Ask a question about mutual funds...")
+
+if user_input:
+    # Check if backend is initialized
+    if not st.session_state.initialized or not st.session_state.rag_chain:
+        error_msg = st.session_state.init_error or "Backend not initialized. Please check configuration."
+        st.session_state.messages.append({
+            "role": "error",
+            "content": error_msg
+        })
         st.rerun()
     
-    st.markdown("---")
+    # Add user message to history
+    st.session_state.messages.append({"role": "user", "content": user_input})
     
-    # Admin section
-    with st.expander("🔧 Admin"):
-        if st.button("🔄 Reinitialize Backend"):
-            st.cache_resource.clear()
-            st.session_state.initialized = False
-            st.session_state.vector_store = None
-            st.session_state.rag_chain = None
-            st.session_state.scraper = None
-            st.rerun()
-        
-        if st.session_state.vector_store:
-            if st.button("📊 Show Collection Info"):
-                try:
-                    info = st.session_state.vector_store.get_collection_info()
-                    st.json(info)
-                except Exception as e:
-                    st.error(f"Error: {e}")
-    
-    st.caption("💡 Click example questions to ask them")
-
-# Main content area - Tabs for Chat, Ingestion, and Scraper
-tab1, tab2, tab3 = st.tabs(["💬 Chat", "📥 Ingest Data", "🕷️ Scraper"])
-
-with tab1:
-    # Chat page
-    # Display chat history
-    for message in st.session_state.messages:
-        if message["role"] == "user":
-            st.markdown(f'<div class="user-message"><strong>You:</strong> {message["content"]}</div>', unsafe_allow_html=True)
-        elif message["role"] == "assistant":
-            answer_html = f'<div class="assistant-message"><strong>Assistant:</strong> {message["content"]}'
-            if "sources" in message and message["sources"]:
-                sources_html = "<div class='source-info'><strong>Sources:</strong><ul>"
-                for source in message["sources"][:3]:  # Show first 3 sources
-                    source_name = source.get("metadata", {}).get("source_file", "Unknown")
-                    sources_html += f"<li>{source_name}</li>"
-                sources_html += "</ul></div>"
-                answer_html += sources_html
-            answer_html += "</div>"
-            st.markdown(answer_html, unsafe_allow_html=True)
-        elif message["role"] == "error":
-            st.markdown(f'<div class="error-message"><strong>Error:</strong> {message["content"]}</div>', unsafe_allow_html=True)
-        elif message["role"] == "warning":
-            st.markdown(f'<div class="warning-message"><strong>Warning:</strong> {message["content"]}</div>', unsafe_allow_html=True)
-
-    # Chat input
-    if "user_question" in st.session_state:
-        user_input = st.session_state.user_question
-        del st.session_state.user_question
-    else:
-        user_input = st.chat_input("Ask a question about mutual funds...")
-
-    if user_input:
-        # Check if backend is initialized
-        if not st.session_state.initialized or not st.session_state.rag_chain:
-            error_msg = st.session_state.init_error or "Backend not initialized. Please check configuration."
+    # Process query
+    with st.spinner("Thinking..."):
+        try:
+            # Validate for PII
+            pii_type = contains_pii(user_input)
+            if pii_type:
+                error_msg = f"I cannot process questions containing personally identifiable information (PII) such as {pii_type}. For your privacy and security, please do not enter sensitive information like PAN numbers, Aadhaar numbers, account details, phone numbers, or email addresses. Please rephrase your question without any sensitive information."
+                st.session_state.messages.append({
+                    "role": "refusal",
+                    "content": error_msg
+                })
+                st.rerun()
+            
+            # Validate comparison questions
+            comparison_validation = validate_comparison(user_input)
+            if not comparison_validation['valid']:
+                st.session_state.messages.append({
+                    "role": "refusal",
+                    "content": comparison_validation['reason']
+                })
+                st.rerun()
+            
+            # Query with retrieval
+            result = st.session_state.rag_chain.query_with_retrieval(
+                question=user_input,
+                k=5,
+                return_scores=False
+            )
+            
+            answer = result.get("answer", "No answer received")
+            sources = result.get("sources", [])
+            
+            # Format sources for display
+            formatted_sources = []
+            for source in sources:
+                formatted_sources.append({
+                    "content": source.get("content", "")[:200] + "..." if len(source.get("content", "")) > 200 else source.get("content", ""),
+                    "metadata": source.get("metadata", {})
+                })
+            
+            # Add assistant message to history
+            st.session_state.messages.append({
+                "role": "assistant",
+                "content": answer,
+                "sources": formatted_sources
+            })
+            
+        except Exception as e:
+            error_msg = f"Sorry, I encountered an error: {str(e)}"
             st.session_state.messages.append({
                 "role": "error",
                 "content": error_msg
             })
-            st.rerun()
-        
-        # Add user message to history
-        st.session_state.messages.append({"role": "user", "content": user_input})
-        
-        # Show user message
-        st.markdown(f'<div class="user-message"><strong>You:</strong> {user_input}</div>', unsafe_allow_html=True)
-        
-        # Process query
-        with st.spinner("Thinking..."):
-            try:
-                # Validate for PII
-                pii_type = contains_pii(user_input)
-                if pii_type:
-                    error_msg = f"I cannot process questions containing personally identifiable information (PII) such as {pii_type}. For your privacy and security, please do not enter sensitive information like PAN numbers, Aadhaar numbers, account details, phone numbers, or email addresses. Please rephrase your question without any sensitive information."
-                    st.session_state.messages.append({
-                        "role": "warning",
-                        "content": error_msg
-                    })
-                    st.rerun()
-                
-                # Validate comparison questions
-                comparison_validation = validate_comparison(user_input)
-                if not comparison_validation['valid']:
-                    st.session_state.messages.append({
-                        "role": "warning",
-                        "content": comparison_validation['reason']
-                    })
-                    st.rerun()
-                
-                # Query with retrieval
-                result = st.session_state.rag_chain.query_with_retrieval(
-                    question=user_input,
-                    k=5,
-                    return_scores=False
-                )
-                
-                answer = result.get("answer", "No answer received")
-                sources = result.get("sources", [])
-                
-                # Format sources for display
-                formatted_sources = []
-                for source in sources:
-                    formatted_sources.append({
-                        "content": source.get("content", "")[:200] + "..." if len(source.get("content", "")) > 200 else source.get("content", ""),
-                        "metadata": source.get("metadata", {})
-                    })
-                
-                # Add assistant message to history
-                st.session_state.messages.append({
-                    "role": "assistant",
-                    "content": answer,
-                    "sources": formatted_sources
-                })
-                
-                # Display answer
-                answer_html = f'<div class="assistant-message"><strong>Assistant:</strong> {answer}'
-                if formatted_sources:
-                    sources_html = "<div class='source-info'><strong>Sources:</strong><ul>"
-                    for source in formatted_sources[:3]:
-                        source_name = source.get("metadata", {}).get("source_file", "Unknown")
-                        sources_html += f"<li>{source_name}</li>"
-                    sources_html += "</ul></div>"
-                    answer_html += sources_html
-                answer_html += "</div>"
-                st.markdown(answer_html, unsafe_allow_html=True)
-                
-            except Exception as e:
-                error_msg = f"Sorry, I encountered an error: {str(e)}"
-                st.session_state.messages.append({
-                    "role": "error",
-                    "content": error_msg
-                })
-                st.markdown(f'<div class="error-message"><strong>Error:</strong> {error_msg}</div>', unsafe_allow_html=True)
-        
-        st.rerun()
-
-with tab2:
-    # Ingestion page
-    st.header("📥 Data Ingestion")
-    st.markdown("Ingest JSON documents from the data directory into ChromaDB vector store.")
     
-    if not st.session_state.initialized or not st.session_state.vector_store:
-        st.error("❌ Backend not initialized. Please check configuration and ensure GEMINI_API_KEY is set.")
-        st.info("💡 Go to Settings → Secrets and add GEMINI_API_KEY")
-    else:
-        # Show current collection status
-        st.markdown("---")
-        st.subheader("📊 Current Collection Status")
-        try:
-            collection_info = st.session_state.vector_store.get_collection_info()
-            col1, col2, col3 = st.columns(3)
-            with col1:
-                st.metric("Collection Name", collection_info.get('collection_name', 'N/A'))
-            with col2:
-                st.metric("Total Documents", collection_info.get('document_count', 0))
-            with col3:
-                st.metric("Database Path", collection_info.get('db_path', 'N/A'))
-            
-            if collection_info.get('document_count', 0) == 0:
-                st.warning("⚠️ No documents in database. Please ingest data first.")
-        except Exception as e:
-            st.error(f"Error getting collection info: {e}")
-        
-        st.markdown("---")
-        
-        # Ingestion form
-        with st.form("ingestion_form"):
-            st.subheader("🚀 Ingestion Settings")
-            
-            # Data directory selection
-            default_data_dir = config.DATA_DIR
-            data_dir = st.text_input(
-                "Data Directory",
-                value=default_data_dir,
-                help="Path to directory containing JSON files to ingest"
-            )
-            
-            # Show info about data directory
-            data_path = Path(data_dir)
-            if data_path.exists():
-                json_files = list(data_path.rglob("*.json"))
-                if json_files:
-                    st.success(f"✅ Found {len(json_files)} JSON file(s) in {data_dir}")
-                    with st.expander(f"📁 View Files ({len(json_files)})"):
-                        for json_file in json_files[:10]:  # Show first 10
-                            st.text(f"• {json_file.name}")
-                        if len(json_files) > 10:
-                            st.caption(f"... and {len(json_files) - 10} more files")
-                else:
-                    st.warning(f"⚠️ No JSON files found in {data_dir}")
-            else:
-                st.error(f"❌ Data directory not found: {data_dir}")
-            
-            # Upsert option
-            col1, col2 = st.columns(2)
-            with col1:
-                upsert_mode = st.checkbox(
-                    "Upsert Mode",
-                    value=True,
-                    help="If enabled, updates existing documents. If disabled, only adds new documents."
-                )
-            with col2:
-                show_details = st.checkbox(
-                    "Show Detailed Progress",
-                    value=True,
-                    help="Show step-by-step progress during ingestion"
-                )
-            
-            # Submit button
-            submitted = st.form_submit_button("🚀 Start Ingestion", use_container_width=True, type="primary")
-            
-            if submitted:
-                # Validate data directory
-                if not data_path.exists():
-                    st.error(f"❌ Data directory not found: {data_dir}")
-                    st.info("💡 Make sure the data directory path is correct.")
-                    st.stop()
-                
-                # Check for JSON files
-                json_files = list(data_path.rglob("*.json"))
-                if not json_files:
-                    st.warning(f"⚠️ No JSON files found in {data_dir}")
-                    st.info("💡 Make sure your JSON files are in the data directory.")
-                    st.stop()
-                
-                # Show progress
-                progress_bar = st.progress(0)
-                status_text = st.empty()
-                details_container = st.container() if show_details else None
-                
-                try:
-                    # Step 1: Load documents
-                    if show_details:
-                        with details_container:
-                            status_text.text("📂 Step 1/4: Loading documents...")
-                    progress_bar.progress(10)
-                    
-                    loader = JSONDocumentLoader(data_dir)
-                    documents = loader.load_documents()
-                    
-                    if not documents:
-                        st.error("❌ No documents loaded. Check JSON file format.")
-                        progress_bar.empty()
-                        status_text.empty()
-                        st.stop()
-                    
-                    if show_details:
-                        with details_container:
-                            st.success(f"✅ Loaded {len(documents)} document(s)")
-                    progress_bar.progress(30)
-                    
-                    # Step 2: Chunk documents
-                    if show_details:
-                        with details_container:
-                            status_text.text("✂️ Step 2/4: Chunking documents...")
-                    progress_bar.progress(40)
-                    
-                    chunker = DocumentChunker()
-                    chunks = chunker.chunk_documents(documents)
-                    
-                    if show_details:
-                        with details_container:
-                            st.success(f"✅ Created {len(chunks)} chunk(s) from {len(documents)} document(s)")
-                    progress_bar.progress(60)
-                    
-                    # Step 3: Store in vector database
-                    if show_details:
-                        with details_container:
-                            status_text.text(f"💾 Step 3/4: {'Upserting' if upsert_mode else 'Adding'} documents to vector store...")
-                    progress_bar.progress(70)
-                    
-                    if upsert_mode:
-                        doc_ids = st.session_state.vector_store.upsert_documents(chunks)
-                        action = "upserted"
-                    else:
-                        doc_ids = st.session_state.vector_store.add_documents(chunks)
-                        action = "added"
-                    
-                    progress_bar.progress(90)
-                    
-                    # Step 4: Get collection info
-                    if show_details:
-                        with details_container:
-                            status_text.text("📊 Step 4/4: Getting collection information...")
-                    collection_info = st.session_state.vector_store.get_collection_info()
-                    
-                    progress_bar.progress(100)
-                    status_text.text("✅ Ingestion complete!")
-                    
-                    # Display results
-                    st.markdown("---")
-                    st.subheader("🎉 Ingestion Results")
-                    
-                    col1, col2, col3, col4 = st.columns(4)
-                    with col1:
-                        st.metric("Documents Processed", len(documents))
-                    with col2:
-                        st.metric("Chunks Created", len(chunks))
-                    with col3:
-                        st.metric("Chunks Stored", len(doc_ids))
-                    with col4:
-                        st.metric("Total in Database", collection_info.get('document_count', 0))
-                    
-                    # Show collection details
-                    with st.expander("📋 Collection Details"):
-                        st.json(collection_info)
-                    
-                    # Show file list
-                    with st.expander(f"📁 Processed Files ({len(json_files)})"):
-                        for json_file in json_files:
-                            st.text(f"• {json_file.name}")
-                    
-                    st.success(f"🎉 Successfully {action} {len(doc_ids)} chunk(s) to vector store!")
-                    
-                    # Clear RAG chain cache to refresh with new data
-                    if st.session_state.rag_chain:
-                        st.session_state.rag_chain.clear_memory()
-                    
-                    # Refresh sidebar collection info
-                    st.rerun()
-                    
-                except FileNotFoundError as e:
-                    st.error(f"❌ File not found: {str(e)}")
-                    st.info("💡 Make sure the data directory path is correct.")
-                    progress_bar.empty()
-                    status_text.empty()
-                except ValueError as e:
-                    st.error(f"❌ Validation error: {str(e)}")
-                    progress_bar.empty()
-                    status_text.empty()
-                except Exception as e:
-                    st.error(f"❌ Error during ingestion: {str(e)}")
-                    st.exception(e)
-                    progress_bar.empty()
-                    status_text.empty()
+    st.rerun()
 
-with tab3:
-    # Scraper page
-    st.header("🕷️ Web Scraper")
-    st.markdown("Scrape mutual fund data from Groww and ingest into the vector database.")
-    
-    if not st.session_state.initialized:
-        st.error("❌ Backend not initialized. Please check configuration.")
-    elif not st.session_state.scraper:
-        st.warning("⚠️ Scraper not available. Make sure `scraper_config.json` exists.")
-        st.info("💡 The scraper requires Playwright and browser dependencies.")
-    else:
-        # Load scraper config
-        try:
-            scraper_config = load_config("scraper_config.json")
-            schedule_config = scraper_config.get("schedule", {})
-            urls_config = scraper_config.get("urls", [])
-            scraper_settings = scraper_config.get("scraper_settings", {})
-        except Exception as e:
-            st.error(f"❌ Error loading scraper config: {e}")
-            scraper_config = None
-            schedule_config = {}
-            urls_config = []
-            scraper_settings = {}
-        
-        # Show scraper status
-        st.markdown("---")
-        st.subheader("📊 Scraper Status")
-        
-        # Get current status
-        if st.session_state.scraper:
-            status = st.session_state.scraper.get_status()
-            st.session_state.scraper_status = status
-            
-            col1, col2 = st.columns(2)
-            with col1:
-                if status.get("is_running"):
-                    st.warning(f"🔄 {status.get('current_operation', 'Running').title()}")
-                else:
-                    st.success("✅ Idle")
-            
-            with col2:
-                if status.get("start_time"):
-                    start_time = datetime.fromisoformat(status["start_time"])
-                    st.caption(f"Started: {start_time.strftime('%Y-%m-%d %H:%M:%S')}")
-            
-            # Show progress if running
-            if status.get("is_running") and status.get("urls_total", 0) > 0:
-                processed = len(status.get("urls_processed", []))
-                total = status.get("urls_total", 0)
-                progress = processed / total if total > 0 else 0
-                
-                st.progress(progress)
-                st.caption(f"{status.get('message', 'Processing...')} ({processed}/{total} URLs)")
-                
-                # Show processed URLs
-                if status.get("urls_processed"):
-                    with st.expander(f"📋 Processed URLs ({processed})"):
-                        for url_info in status.get("urls_processed", [])[-10:]:  # Show last 10
-                            url = url_info.get("url", "Unknown")
-                            url_status = url_info.get("status", "unknown")
-                            status_icon = "✅" if url_status == "success" else "❌"
-                            st.text(f"{status_icon} {url[:60]}...")
-            
-            # Show error if any
-            if status.get("error"):
-                st.error(f"❌ Error: {status.get('error')}")
-        
-        st.markdown("---")
-        
-        # Scraper configuration display
-        if scraper_config:
-            st.subheader("⚙️ Scraper Configuration")
-            
-            col1, col2 = st.columns(2)
-            with col1:
-                st.metric("Total URLs", len(urls_config))
-                st.metric("Output Directory", scraper_settings.get("output_dir", "N/A"))
-            with col2:
-                schedule_enabled = schedule_config.get("enabled", False)
-                st.metric("Schedule Enabled", "Yes" if schedule_enabled else "No")
-                if schedule_enabled:
-                    interval_type = schedule_config.get("interval_type", "hourly")
-                    interval_hours = schedule_config.get("interval_hours", 1)
-                    st.caption(f"Interval: {interval_hours} {interval_type}")
-            
-            # Show URLs
-            with st.expander(f"🔗 URLs to Scrape ({len(urls_config)})"):
-                for i, url_item in enumerate(urls_config, 1):
-                    url = url_item.get("url", "")
-                    st.text(f"{i}. {url}")
-        
-        st.markdown("---")
-        
-        # Manual scraping controls
-        st.subheader("🚀 Manual Scraping")
-        
-        col1, col2, col3 = st.columns(3)
-        
-        with col1:
-            scrape_only = st.checkbox("Scrape Only", help="Only scrape, don't ingest")
-        
-        with col2:
-            ingest_only = st.checkbox("Ingest Only", help="Only ingest existing data, don't scrape")
-        
-        with col3:
-            auto_ingest = st.checkbox("Auto Ingest After Scrape", value=True, help="Automatically ingest after scraping")
-        
-        if st.button("🕷️ Start Scraping", type="primary", use_container_width=True):
-            if scrape_only and ingest_only:
-                st.error("❌ Cannot select both 'Scrape Only' and 'Ingest Only'")
-            else:
-                with st.spinner("Starting scraping operation..."):
-                    try:
-                        def run_scraper():
-                            try:
-                                if scrape_only:
-                                    result = st.session_state.scraper.run_scraping()
-                                elif ingest_only:
-                                    result = st.session_state.scraper.run_ingestion()
-                                else:
-                                    # Full pipeline
-                                    result = st.session_state.scraper.run_full_pipeline(
-                                        force=True,
-                                        check_new_urls=True
-                                    )
-                                
-                                # Auto-ingest if enabled and not ingest_only
-                                if auto_ingest and not ingest_only and not scrape_only:
-                                    if result.get("status") == "completed":
-                                        st.session_state.scraper.run_ingestion()
-                                
-                                st.success("✅ Scraping operation completed!")
-                                st.rerun()
-                            except Exception as e:
-                                st.error(f"❌ Scraping error: {e}")
-                                st.rerun()
-                        
-                        # Run in thread to avoid blocking
-                        thread = threading.Thread(target=run_scraper, daemon=True)
-                        thread.start()
-                        
-                        st.info("🔄 Scraping started in background. Check status above for progress.")
-                        time.sleep(1)  # Brief delay to show message
-                        st.rerun()
-                        
-                    except Exception as e:
-                        st.error(f"❌ Error starting scraper: {e}")
-        
-        # Auto-refresh status every 3 seconds if running
-        if st.session_state.scraper_status.get("is_running"):
-            time.sleep(3)
-            if st.session_state.scraper:
-                # Update status
-                st.session_state.scraper_status = st.session_state.scraper.get_status()
-            st.rerun()
-
-# Footer
-st.markdown("---")
-st.caption("💡 This assistant provides factual information only. Not investment advice.")
-
-# Show initialization status in footer
-if st.session_state.init_error:
-    st.error(f"⚠️ Backend Error: {st.session_state.init_error}")
+# Note: Scraper status is checked on each render above
+# Streamlit will naturally rerun when user interacts with the page
