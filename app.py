@@ -1,4 +1,4 @@
-"""
+button fix-3"""
 Streamlit app for Mutual Fund FAQ Assistant
 Simple local deployment with automatic scraper scheduling
 """
@@ -474,7 +474,7 @@ st.markdown("""
         opacity: 1 !important;
     }
     
-    /* Style Send button specifically - WhatsApp style rounded rectangle button */
+    /* Style Send button specifically - WhatsApp style rounded rectangle button with arrow */
     .stChatInput > div > div > div > button:last-child,
     .stChatInput > div > div > button:last-child,
     .stChatInput button[kind="primary"],
@@ -494,7 +494,8 @@ st.markdown("""
         width: auto !important;
         height: 40px !important;
         min-width: 40px !important;
-        padding: 8px 16px !important;
+        max-width: 50px !important;
+        padding: 8px 12px !important;
         align-items: center !important;
         justify-content: center !important;
         cursor: pointer !important;
@@ -502,16 +503,26 @@ st.markdown("""
         position: relative !important;
         z-index: 999 !important;
         box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3) !important;
-        font-size: 18px !important;
-        font-weight: 500 !important;
+        font-size: 20px !important;
+        font-weight: 600 !important;
+    }
+    
+    /* Hide any SVG icons in send button and ensure only arrow shows */
+    .stChatInput button:not([aria-label*="microphone"]):not([aria-label*="Mic"]) svg,
+    [data-testid="stChatInput"] button:not([aria-label*="microphone"]):not([aria-label*="Mic"]) svg {
+        display: none !important;
     }
     
     /* Arrow icon for send button */
     .send-button-arrow {
-        display: inline-block !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
         margin: 0 !important;
         padding: 0 !important;
         line-height: 1 !important;
+        font-size: 20px !important;
+        font-weight: 600 !important;
     }
     
     .stChatInput > div > div > div > button:last-child:hover,
@@ -1497,27 +1508,27 @@ st.markdown("""
                 button.style.setProperty('position', 'relative', 'important');
                 button.style.setProperty('transition', 'all 0.2s ease', 'important');
                 
-                // Add arrow/paper plane icon if not already present
+                // Always ensure arrow icon is present - remove any existing content first
+                // Remove any existing SVG icons
+                const svgs = button.querySelectorAll('svg');
+                svgs.forEach(svg => {
+                    svg.remove();
+                });
+                
+                // Check if arrow already exists
                 const hasArrow = button.textContent.includes('→') || 
                                 button.textContent.includes('➜') || 
-                                button.textContent.includes('✈️') ||
-                                button.innerHTML.includes('✈️') ||
+                                button.innerHTML.includes('→') ||
                                 button.querySelector('.send-button-arrow');
                 
                 if (!hasArrow) {
-                    // Remove any existing SVG icons
-                    const svgs = button.querySelectorAll('svg');
-                    svgs.forEach(svg => {
-                        if (!svg.closest('.send-button-arrow')) {
-                            svg.remove();
-                        }
-                    });
+                    // Clear button content
+                    button.innerHTML = '';
                     
                     // Create WhatsApp-style send icon (right arrow)
                     const arrow = document.createElement('span');
                     arrow.className = 'send-button-arrow';
-                    // Use right arrow like WhatsApp
-                    arrow.innerHTML = '→';
+                    arrow.textContent = '→';
                     arrow.style.display = 'inline-flex';
                     arrow.style.alignItems = 'center';
                     arrow.style.justifyContent = 'center';
@@ -1526,9 +1537,16 @@ st.markdown("""
                     arrow.style.lineHeight = '1';
                     arrow.style.fontSize = '20px';
                     arrow.style.fontWeight = '600';
-                    // Clear any existing content and add arrow
-                    button.innerHTML = '';
+                    arrow.style.color = 'white';
+                    
+                    // Add arrow to button
                     button.appendChild(arrow);
+                } else {
+                    // Ensure arrow is visible even if it exists
+                    const existingArrow = button.querySelector('.send-button-arrow') || button;
+                    if (existingArrow.textContent && !existingArrow.textContent.includes('→')) {
+                        existingArrow.textContent = '→';
+                    }
                 }
                 
                 // Add hover effect (check if already added)
