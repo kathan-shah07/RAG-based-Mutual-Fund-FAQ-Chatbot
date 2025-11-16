@@ -474,7 +474,7 @@ st.markdown("""
         opacity: 1 !important;
     }
     
-    /* Style Send button specifically - modern gradient button with arrow - MORE AGGRESSIVE */
+    /* Style Send button specifically - WhatsApp style rounded rectangle button */
     .stChatInput > div > div > div > button:last-child,
     .stChatInput > div > div > button:last-child,
     .stChatInput button[kind="primary"],
@@ -490,20 +490,20 @@ st.markdown("""
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
         color: white !important;
         border: none !important;
-        border-radius: 50% !important;
-        width: 42px !important;
-        height: 42px !important;
-        min-width: 42px !important;
-        padding: 0 !important;
+        border-radius: 24px !important;
+        width: auto !important;
+        height: 40px !important;
+        min-width: 40px !important;
+        padding: 8px 16px !important;
         align-items: center !important;
         justify-content: center !important;
         cursor: pointer !important;
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+        transition: all 0.2s ease !important;
         position: relative !important;
         z-index: 999 !important;
-        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4) !important;
-        font-size: 20px !important;
-        font-weight: bold !important;
+        box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3) !important;
+        font-size: 18px !important;
+        font-weight: 500 !important;
     }
     
     /* Arrow icon for send button */
@@ -519,13 +519,14 @@ st.markdown("""
     .stChatInput button[aria-label*="Send"]:hover,
     .stChatInput button[aria-label*="send"]:hover {
         background: linear-gradient(135deg, #5568d3 0%, #6a3f8f 100%) !important;
-        transform: scale(1.05) !important;
-        box-shadow: 0 6px 20px rgba(102, 126, 234, 0.5) !important;
+        transform: translateY(-1px) !important;
+        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4) !important;
     }
     
     .stChatInput > div > div > div > button:last-child:active,
     .stChatInput button[kind="primary"]:active {
-        transform: scale(0.95) !important;
+        transform: translateY(0) !important;
+        box-shadow: 0 2px 6px rgba(102, 126, 234, 0.3) !important;
     }
     
     /* Hide mic icon in chat input - multiple selectors to ensure it's hidden */
@@ -1474,30 +1475,33 @@ st.markdown("""
                 button.style.visibility = 'hidden';
                 button.style.opacity = '0';
             } else {
-                // This is the Send button - make it visible and styled with arrow icon
+                // This is the Send button - WhatsApp style rounded rectangle
                 button.style.setProperty('display', 'flex', 'important');
                 button.style.setProperty('visibility', 'visible', 'important');
                 button.style.setProperty('opacity', '1', 'important');
                 button.style.setProperty('background', 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', 'important');
                 button.style.setProperty('color', 'white', 'important');
                 button.style.setProperty('border', 'none', 'important');
-                button.style.setProperty('border-radius', '50%', 'important');
-                button.style.setProperty('width', '42px', 'important');
-                button.style.setProperty('height', '42px', 'important');
-                button.style.setProperty('min-width', '42px', 'important');
-                button.style.setProperty('padding', '0', 'important');
+                button.style.setProperty('border-radius', '24px', 'important');
+                button.style.setProperty('width', 'auto', 'important');
+                button.style.setProperty('height', '40px', 'important');
+                button.style.setProperty('min-width', '40px', 'important');
+                button.style.setProperty('padding', '8px 16px', 'important');
                 button.style.setProperty('align-items', 'center', 'important');
                 button.style.setProperty('justify-content', 'center', 'important');
                 button.style.setProperty('cursor', 'pointer', 'important');
                 button.style.setProperty('z-index', '999', 'important');
-                button.style.setProperty('font-size', '20px', 'important');
-                button.style.setProperty('font-weight', 'bold', 'important');
-                button.style.setProperty('box-shadow', '0 4px 12px rgba(102, 126, 234, 0.4)', 'important');
+                button.style.setProperty('font-size', '18px', 'important');
+                button.style.setProperty('font-weight', '500', 'important');
+                button.style.setProperty('box-shadow', '0 2px 8px rgba(102, 126, 234, 0.3)', 'important');
                 button.style.setProperty('position', 'relative', 'important');
+                button.style.setProperty('transition', 'all 0.2s ease', 'important');
                 
-                // Add arrow icon if not already present
+                // Add arrow/paper plane icon if not already present
                 const hasArrow = button.textContent.includes('→') || 
                                 button.textContent.includes('➜') || 
+                                button.textContent.includes('✈️') ||
+                                button.innerHTML.includes('✈️') ||
                                 button.querySelector('.send-button-arrow');
                 
                 if (!hasArrow) {
@@ -1509,15 +1513,19 @@ st.markdown("""
                         }
                     });
                     
+                    // Create WhatsApp-style send icon (right arrow)
                     const arrow = document.createElement('span');
                     arrow.className = 'send-button-arrow';
-                    arrow.textContent = '→';
-                    arrow.style.display = 'inline-block';
+                    // Use right arrow like WhatsApp
+                    arrow.innerHTML = '→';
+                    arrow.style.display = 'inline-flex';
+                    arrow.style.alignItems = 'center';
+                    arrow.style.justifyContent = 'center';
                     arrow.style.margin = '0';
                     arrow.style.padding = '0';
                     arrow.style.lineHeight = '1';
                     arrow.style.fontSize = '20px';
-                    arrow.style.fontWeight = 'bold';
+                    arrow.style.fontWeight = '600';
                     // Clear any existing content and add arrow
                     button.innerHTML = '';
                     button.appendChild(arrow);
@@ -1529,21 +1537,23 @@ st.markdown("""
                     
                     button.addEventListener('mouseenter', function() {
                         this.style.setProperty('background', 'linear-gradient(135deg, #5568d3 0%, #6a3f8f 100%)', 'important');
-                        this.style.setProperty('transform', 'scale(1.05)', 'important');
-                        this.style.setProperty('box-shadow', '0 6px 20px rgba(102, 126, 234, 0.5)', 'important');
+                        this.style.setProperty('transform', 'translateY(-1px)', 'important');
+                        this.style.setProperty('box-shadow', '0 4px 12px rgba(102, 126, 234, 0.4)', 'important');
                     });
                     button.addEventListener('mouseleave', function() {
                         this.style.setProperty('background', 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', 'important');
-                        this.style.setProperty('transform', 'scale(1)', 'important');
-                        this.style.setProperty('box-shadow', '0 4px 12px rgba(102, 126, 234, 0.4)', 'important');
+                        this.style.setProperty('transform', 'translateY(0)', 'important');
+                        this.style.setProperty('box-shadow', '0 2px 8px rgba(102, 126, 234, 0.3)', 'important');
                     });
                     
                     // Add active effect
                     button.addEventListener('mousedown', function() {
-                        this.style.setProperty('transform', 'scale(0.95)', 'important');
+                        this.style.setProperty('transform', 'translateY(0)', 'important');
+                        this.style.setProperty('box-shadow', '0 2px 6px rgba(102, 126, 234, 0.3)', 'important');
                     });
                     button.addEventListener('mouseup', function() {
-                        this.style.setProperty('transform', 'scale(1)', 'important');
+                        this.style.setProperty('transform', 'translateY(-1px)', 'important');
+                        this.style.setProperty('box-shadow', '0 4px 12px rgba(102, 126, 234, 0.4)', 'important');
                     });
                 }
             }
