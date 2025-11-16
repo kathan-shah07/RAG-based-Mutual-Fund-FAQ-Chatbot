@@ -55,61 +55,56 @@ curl -X POST "http://localhost:8000/api/v1/ingest" \
 
 ## Deployment
 
-### Vercel Deployment
+### Streamlit Cloud Deployment
 
-This application is configured for deployment on Vercel as serverless functions.
+This application is configured for deployment on Streamlit Cloud.
 
 **📚 Deployment Documentation:**
-- **[Quick Start Guide](VERCEL_DEPLOYMENT_GUIDE.md)** - Get deployed in 5 minutes
-- **[Complete Deployment Plan](VERCEL_DEPLOYMENT_PLAN.md)** - Detailed step-by-step guide
+- **[Streamlit Deployment Guide](STREAMLIT_DEPLOYMENT_GUIDE.md)** - Complete deployment guide
 
 #### Quick Start
 
-1. **Connect Repository to Vercel**
-   - Go to [vercel.com](https://vercel.com) and sign in with GitHub
-   - Click "Add New" → "Project"
-   - Import your repository
+1. **Push to GitHub**
+   - Ensure all code is committed and pushed to GitHub
+   - Repository should include `app.py` (Streamlit app)
 
-2. **Set Environment Variables**
-   - Go to Settings → Environment Variables
-   - Add `GEMINI_API_KEY` (mark as secret)
-   - Optional: Set other variables (defaults work fine)
+2. **Deploy on Streamlit Cloud**
+   - Go to [share.streamlit.io](https://share.streamlit.io)
+   - Sign in with GitHub
+   - Click "New app"
+   - Select your repository
+   - Main file: `app.py`
+   - Click "Deploy"
 
-3. **Deploy**
-   - Vercel will auto-detect Python and start building
-   - Wait ~2-5 minutes for first build
-   - Get your URL: `your-project.vercel.app`
+3. **Set Secrets** (Environment Variables)
+   - Go to Settings → Secrets
+   - Add `GEMINI_API_KEY` (your Gemini API key)
+   - Add `API_BASE_URL` (if using separate FastAPI backend)
 
-4. **Verify Deployment**
-   - Frontend: `https://your-project.vercel.app/`
-   - Health: `https://your-project.vercel.app/health`
-   - API Docs: `https://your-project.vercel.app/docs`
+4. **Access Your App**
+   - Your app will be live at: `https://your-app-name.streamlit.app`
+   - Streamlit Cloud auto-redeploys on every push
 
-**For detailed instructions, see [VERCEL_DEPLOYMENT_GUIDE.md](VERCEL_DEPLOYMENT_GUIDE.md)**
+**For detailed instructions, see [STREAMLIT_DEPLOYMENT_GUIDE.md](STREAMLIT_DEPLOYMENT_GUIDE.md)**
 
-#### ⚠️ Important Limitations
+#### Streamlit Cloud Features
 
-**Vercel Serverless Constraints:**
-- **No Persistent Storage**: ChromaDB data is ephemeral (use `/tmp` or external database)
-- **10-Second Timeout**: Free tier functions timeout after 10 seconds
-- **Cold Starts**: First request after inactivity: 5-10 seconds
-- **No Background Tasks**: Scheduled scraper cannot run
-- **Commercial Use**: Free tier restricted to personal/hobby projects
+- ✅ **Free tier** - Unlimited apps
+- ✅ **Auto-deploy** - Deploys on every Git push
+- ✅ **Easy setup** - Just connect GitHub repo
+- ✅ **Custom domains** - Available in Pro tier
+- ✅ **Private repos** - Available in Pro tier
 
-**Recommendations:**
-- Use external database (Supabase, MongoDB Atlas) for production
-- Disable scheduled scraper or use external cron service
-- Consider Vercel Pro ($20/month) for 60-second timeout and commercial use
-- Optimize queries to stay under 10-second limit
+#### Architecture Options
 
-#### Vercel Free Tier Limits
+**Option 1: Streamlit + Separate FastAPI Backend** (Recommended)
+- Deploy Streamlit app on Streamlit Cloud
+- Deploy FastAPI backend separately (Railway, Render, etc.)
+- Streamlit calls FastAPI API endpoints
 
-- **Bandwidth**: 100 GB/month
-- **Build Minutes**: 6,000/month
-- **Function Invocations**: 100 GB-hours/month
-- **Function Timeout**: 10 seconds
-- **Function Memory**: 1GB
-- **Commercial Use**: ❌ Restricted (personal/hobby only)
+**Option 2: Pure Streamlit**
+- Run everything in Streamlit (requires code refactoring)
+- Single deployment, simpler setup
 
 ## API Endpoints
 
@@ -158,18 +153,19 @@ See `/docs` endpoint for interactive API documentation.
 
 ```
 MF-Chatbot/
+├── app.py                  # Streamlit app (main entry point)
 ├── api/                    # FastAPI application
-│   ├── index.py           # Vercel serverless handler
 │   └── main.py            # FastAPI app
 ├── ingestion/              # Document processing
 ├── vector_store/           # ChromaDB integration
 ├── retrieval/              # RAG implementation
 ├── scrapers/               # Web scraping
 ├── scripts/                # Utility scripts
-├── static/                 # Frontend files
+├── static/                 # Frontend files (HTML/JS/CSS)
 ├── data/                   # Source data
 ├── chroma_db/              # Vector database (local)
-├── vercel.json             # Vercel configuration
+├── .streamlit/             # Streamlit configuration
+│   └── config.toml
 ├── Dockerfile              # Optional (for other platforms)
 └── requirements.txt        # Python dependencies
 ```
@@ -178,7 +174,7 @@ MF-Chatbot/
 
 See `ARCHITECTURE.md` for detailed architecture documentation.
 
-Environment variables are configured in `.env` file (local) or Railway dashboard (production).
+Environment variables are configured in `.env` file (local) or Streamlit Cloud secrets (production).
 
 ## Development
 
