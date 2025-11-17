@@ -10,9 +10,8 @@ This document lists all the mutual fund data sources used in the Mutual Fund FAQ
 |----|----------|----------------|-------------|------------|
 | 1 | Nippon | Equity | Large Cap | [Nippon India Large Cap Fund Direct Growth](https://groww.in/mutual-funds/nippon-india-large-cap-fund-direct-growth) |
 | 2 | Nippon | Equity | Mid Cap | [Nippon India Growth Mid Cap Fund Direct Growth](https://groww.in/mutual-funds/nippon-india-growth-mid-cap-fund-direct-growth) |
-| 3 | Nippon | Equity | Small Cap | [Nippon India Small Cap Fund Direct Growth](https://groww.in/mutual-funds/nippon-india-small-cap-fund-direct-growth) |
-| 4 | Nippon | Equity | Flexi Cap | [Nippon India Flexi Cap Fund Direct Growth](https://groww.in/mutual-funds/nippon-india-flexi-cap-fund-direct-growth) |
-| 5 | Nippon | Equity | ELSS | [Nippon India ELSS Tax Saver Fund Direct Growth](https://groww.in/mutual-funds/nippon-india-elss-tax-saver-fund-direct-growth) |
+| 3 | Nippon | Equity | Flexi Cap | [Nippon India Flexi Cap Fund Direct Growth](https://groww.in/mutual-funds/nippon-india-flexi-cap-fund-direct-growth) |
+| 4 | Nippon | Equity | ELSS | [Nippon India ELSS Tax Saver Fund Direct Growth](https://groww.in/mutual-funds/nippon-india-elss-tax-saver-fund-direct-growth) |
 
 ---
 
@@ -36,19 +35,9 @@ This document lists all the mutual fund data sources used in the Mutual Fund FAQ
 - **Source URL:** https://groww.in/mutual-funds/nippon-india-growth-mid-cap-fund-direct-growth
 - **Data Includes:** NAV, AUM, expense ratio, returns, holdings, performance metrics
 
----
+--
 
-### 3. Nippon India Small Cap Fund Direct Growth
-
-- **AMC:** Nippon India Asset Management Company
-- **Category:** Equity
-- **Type:** Small Cap
-- **Source URL:** https://groww.in/mutual-funds/nippon-india-small-cap-fund-direct-growth
-- **Data Includes:** NAV, AUM, expense ratio, returns, holdings, performance metrics
-
----
-
-### 4. Nippon India Flexi Cap Fund Direct Growth
+### 43. Nippon India Flexi Cap Fund Direct Growth
 
 - **AMC:** Nippon India Asset Management Company
 - **Category:** Equity
@@ -58,7 +47,7 @@ This document lists all the mutual fund data sources used in the Mutual Fund FAQ
 
 ---
 
-### 5. Nippon India ELSS Tax Saver Fund Direct Growth
+### 4. Nippon India ELSS Tax Saver Fund Direct Growth
 
 - **AMC:** Nippon India Asset Management Company
 - **Category:** Equity
