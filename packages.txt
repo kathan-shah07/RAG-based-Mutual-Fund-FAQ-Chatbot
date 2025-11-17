@@ -1,5 +1,21 @@
+# ============================================================================
+# System Package Dependencies (packages.txt)
+# ============================================================================
+# This file contains system-level packages installed via apt-get.
+# Streamlit Cloud automatically installs these packages using: apt-get install
+#
+# These packages are required for browser automation (Playwright/Selenium):
+# - chromium & chromium-driver: Browser binaries for web scraping
+# - lib* packages: System libraries required by Chromium/Playwright
+#
+# Note: For Python packages, see requirements.txt
+# ============================================================================
+
+# Browser binaries for web scraping
 chromium
 chromium-driver
+
+# System libraries required by Chromium/Playwright
 libnss3
 libatk-bridge2.0-0
 libdrm2
