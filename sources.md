@@ -37,7 +37,7 @@ This document lists all the mutual fund data sources used in the Mutual Fund FAQ
 
 --
 
-### 43. Nippon India Flexi Cap Fund Direct Growth
+### 3. Nippon India Flexi Cap Fund Direct Growth
 
 - **AMC:** Nippon India Asset Management Company
 - **Category:** Equity
